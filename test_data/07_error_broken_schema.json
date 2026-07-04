@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    {"id": "core-01", "label": "core-01", "status": "alive"},
+    {"id": "core-02", "status": "alive"},
+    {"id": "edge-01", "label": "edge-01"},
+    {"id": "", "label": "unnamed-node", "status": "alive"},
+    {"label": "no-id-node", "status": "dead"},
+    {"id": "edge-02", "label": "edge-02", "status": "offline"}
+  ],
+  "links": [
+    {"source": "core-01", "target": "core-02", "load": 0.5},
+    {"source": "core-02", "target": "edge-01"},
+    {"source": "edge-01", "target": "edge-02", "load": 0.4}
+  ]
+}

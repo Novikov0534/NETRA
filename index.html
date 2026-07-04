@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETRA — Network Topology Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e17;
+    --bg-raised:#0e1420;
+    --bg-panel:#101826;
+    --line:#1b2434;
+    --line-soft:#141c2b;
+    --accent:#3b82f6;
+    --accent-dim:#1d4ed8;
+    --accent-glow:rgba(59,130,246,.35);
+    --text:#94a3b8;
+    --text-bright:#e2e8f0;
+    --alive:#22c55e;
+    --dead:#ef4444;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);height:100%;-webkit-font-smoothing:antialiased;}
+  body{overflow-x:hidden;}
+  ::selection{background:var(--accent-dim);color:#fff;}
+
+  a{color:inherit;}
+  button{font-family:var(--sans);cursor:pointer;}
+
+  /* ---------- background texture: quiet topology grid ---------- */
+  .grid-field{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 70%);
+    opacity:.5;
+  }
+
+  /* ---------- top nav ---------- */
+  .topnav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px; height:64px;
+    background:rgba(10,14,23,.72);
+    backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--mono); font-size:15px; letter-spacing:.14em;
+    color:var(--text-bright); font-weight:600; text-transform:uppercase;
+  }
+  .brand .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-glow);
+  }
+  .tabs{display:flex; gap:4px; background:var(--bg-raised); padding:4px; border-radius:8px; border:1px solid var(--line);}
+  .tab-btn{
+    background:transparent; border:none; color:var(--text);
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.06em; text-transform:uppercase;
+    padding:8px 16px; border-radius:6px; transition:.2s ease;
+  }
+  .tab-btn:hover{color:var(--text-bright);}
+  .tab-btn.active{background:var(--accent); color:#fff; box-shadow:0 0 18px -4px var(--accent-glow);}
+  .nav-status{
+    font-family:var(--mono); font-size:11.5px; color:var(--text); display:flex; align-items:center; gap:8px;
+  }
+  .pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--alive); animation:blink 2.2s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* ---------- views ---------- */
+  .view{
+    position:relative; z-index:1; min-height:100vh; padding-top:64px;
+    opacity:0; transform:translateY(8px); pointer-events:none; position:absolute; inset:0;
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .view.active{opacity:1; transform:translateY(0); pointer-events:auto; position:relative;}
+
+  /* ============ HOME ============ */
+  #view-home{padding-top:0;}
+  .hero{
+    position:relative; min-height:100vh; display:flex; align-items:flex-end;
+    overflow:hidden; border-bottom:1px solid var(--line);
+  }
+  .hero video{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%;
+    filter:saturate(70%) brightness(.55);
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background:
+      linear-gradient(180deg, rgba(10,14,23,.55) 0%, rgba(10,14,23,.35) 40%, rgba(10,14,23,.96) 100%),
+      linear-gradient(90deg, rgba(10,14,23,.9) 0%, rgba(10,14,23,.15) 55%);
+  }
+  .hero-content{
+    position:relative; z-index:2; padding:64px 6vw 88px; max-width:760px;
+  }
+  .hero-eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .hero-eyebrow::before{content:"";width:22px;height:1px;background:var(--accent);display:inline-block;}
+  h1.hero-title{
+    font-size:clamp(2.6rem, 6.4vw, 5.2rem); line-height:.98; letter-spacing:-.03em;
+    color:var(--text-bright); margin:0 0 22px; font-weight:700;
+  }
+  .hero-sub{font-size:16.5px; line-height:1.65; color:var(--text); max-width:52ch; margin:0 0 34px;}
+  .hero-actions{display:flex; flex-wrap:wrap; gap:14px; align-items:center;}
+
+  .btn-primary{
+    background:var(--accent); color:#fff; border:none; padding:13px 22px; border-radius:6px;
+    font-size:14px; font-weight:600; letter-spacing:.01em; display:inline-flex; align-items:center; gap:9px;
+    transition:.2s ease; box-shadow:0 0 0 0 var(--accent-glow);
+  }
+  .btn-primary:hover{background:#2e6fe0; box-shadow:0 4px 22px -4px var(--accent-glow); transform:translateY(-1px);}
+  .file-label input{display:none;}
+
+  .btn-ghost{
+    background:transparent; color:var(--text-bright); border:1px solid var(--line);
+    padding:12px 20px; border-radius:6px; font-size:13.5px; transition:.2s ease;
+  }
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+
+  /* below-fold sections */
+  .section{padding:76px 6vw; border-bottom:1px solid var(--line); position:relative; z-index:1;}
+  .section-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:38px; gap:24px; flex-wrap:wrap;}
+  .section-label{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent);
+    margin-bottom:10px;
+  }
+  .section-title{font-size:1.7rem; color:var(--text-bright); margin:0; font-weight:650; letter-spacing:-.01em;}
+  .section-note{font-size:13.5px; color:var(--text); max-width:38ch; text-align:right;}
+
+  .demo-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  }
+  .demo-card{
+    background:var(--bg-raised); padding:26px 24px; text-align:left; border:none; color:var(--text);
+    transition:.25s ease; position:relative; min-height:150px; display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .demo-card:hover{background:var(--bg-panel); color:var(--text-bright);}
+  .demo-card:hover .demo-glyph rect, .demo-card:hover .demo-glyph line{stroke:var(--accent);}
+  .demo-glyph{margin-bottom:18px; display:block;}
+  .demo-glyph rect{fill:none; stroke:var(--text); stroke-width:1.4; transition:.25s ease;}
+  .demo-glyph line{stroke:var(--line); stroke-width:1.2; transition:.25s ease;}
+  .demo-name{font-size:15px; font-weight:600; color:var(--text-bright); margin-bottom:6px;}
+  .demo-meta{font-family:var(--mono); font-size:11px; color:var(--text); letter-spacing:.03em;}
+
+  .footer-strip{
+    padding:26px 6vw; display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono); font-size:11.5px; color:var(--text); flex-wrap:wrap; gap:10px;
+  }
+
+  /* ============ VISUALIZATION ============ */
+  #view-viz{display:flex; flex-direction:column; height:100vh;}
+  .viz-toolbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:14px 24px; border-bottom:1px solid var(--line); background:var(--bg-raised);
+  }
+  .viz-toolbar-left{font-family:var(--mono); font-size:12px; color:var(--text); display:flex; gap:18px; align-items:center;}
+  .viz-toolbar-left b{color:var(--text-bright); font-weight:600;}
+  .viz-toolbar-right{display:flex; gap:10px;}
+  .tool-btn{
+    background:var(--bg-panel); border:1px solid var(--line); color:var(--text);
+    padding:8px 14px; border-radius:6px; font-size:12.5px; font-family:var(--mono);
+    display:flex; align-items:center; gap:7px; transition:.2s ease;
+  }
+  .tool-btn:hover{border-color:var(--accent); color:var(--text-bright);}
+
+  .issues-banner{
+    display:none; align-items:flex-start; gap:12px; padding:14px 24px;
+    background:rgba(239,68,68,.08); border-bottom:1px solid rgba(239,68,68,.35);
+    font-family:var(--mono); font-size:12.5px; color:#fca5a5;
+  }
+  .issues-banner.show{display:flex;}
+  .issues-banner .ib-icon{flex-shrink:0; margin-top:1px;}
+  .issues-banner .ib-body{flex:1;}
+  .issues-banner .ib-title{color:#fecaca; font-weight:600; margin-bottom:6px; letter-spacing:.04em; text-transform:uppercase; font-size:11.5px;}
+  .issues-banner ul{margin:0; padding-left:18px; max-height:110px; overflow-y:auto;}
+  .issues-banner li{margin-bottom:3px; line-height:1.5;}
+  .issues-banner .ib-close{background:none; border:none; color:#fca5a5; font-size:15px; padding:2px 6px; flex-shrink:0;}
+  .issues-banner .ib-close:hover{color:#fff;}
+
+  .issues-section{border:1px solid rgba(239,68,68,.3); background:rgba(239,68,68,.05); border-radius:10px; padding:20px 22px; margin-top:32px;}
+  .issues-section.empty{border-color:var(--line); background:var(--bg-raised);}
+  .issues-section h4{margin:0 0 12px; font-family:var(--mono); font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:#fca5a5;}
+  .issues-section.empty h4{color:var(--alive);}
+  .issues-section ul{margin:0; padding-left:20px; font-size:13px; color:var(--text-bright); line-height:1.8;}
+
+  .viz-stage{position:relative; flex:1; min-height:0;}
+  #cy{position:absolute; inset:0; background:
+      radial-gradient(ellipse 60% 50% at 50% 40%, rgba(59,130,246,.06), transparent 70%), var(--bg);}
+
+  .legend{
+    position:absolute; top:20px; left:20px; z-index:5;
+    background:rgba(14,20,32,.88); backdrop-filter:blur(10px);
+    border:1px solid var(--line); border-radius:10px; padding:16px 18px; width:220px;
+  }
+  .legend h4{margin:0 0 12px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-bright); font-family:var(--mono); font-weight:600;}
+  .legend-row{display:flex; align-items:center; gap:9px; font-size:12px; margin-bottom:8px; color:var(--text);}
+  .legend-swatch{width:11px; height:11px; border-radius:3px; flex-shrink:0;}
+  .legend-scale{height:8px; border-radius:4px; margin:8px 0 6px; background:linear-gradient(90deg,#16233b,#3b82f6,#93c5fd);}
+  .legend-scale-labels{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--text);}
+
+  .side-panel{
+    position:absolute; top:0; right:0; bottom:0; width:340px; z-index:6;
+    background:rgba(14,20,32,.97); border-left:1px solid var(--line);
+    transform:translateX(100%); transition:transform .3s ease; padding:24px; overflow-y:auto;
+  }
+  .side-panel.open{transform:translateX(0);}
+  .side-panel-close{
+    position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text);
+    font-size:18px; line-height:1; padding:6px;
+  }
+  .side-panel-close:hover{color:var(--text-bright);}
+  .panel-kind{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:8px;}
+  .panel-title{font-size:20px; color:var(--text-bright); font-weight:650; margin:0 0 22px; word-break:break-word;}
+  .panel-field{border-top:1px solid var(--line); padding:12px 0;}
+  .panel-field .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--text); margin-bottom:4px;}
+  .panel-field .v{font-size:14.5px; color:var(--text-bright);}
+  .status-chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;}
+  .status-chip .d{width:8px;height:8px;border-radius:50%;}
+
+  /* ============ STATS ============ */
+  .stats-wrap{padding:44px 6vw 80px;}
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:48px;}
+  .kpi{background:var(--bg-raised); padding:28px 26px;}
+  .kpi .label{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:14px;}
+  .kpi .value{font-size:2.3rem; font-weight:700; color:var(--text-bright); letter-spacing:-.02em; font-family:var(--mono);}
+  .kpi .value.warn{color:var(--dead);}
+  .kpi .sub{font-size:12px; color:var(--text); margin-top:6px;}
+
+  table.dead-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.dead-table th{
+    text-align:left; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text); padding:12px 16px; border-bottom:1px solid var(--line); font-weight:600;
+  }
+  table.dead-table td{padding:14px 16px; border-bottom:1px solid var(--line-soft); color:var(--text-bright);}
+  table.dead-table tr:hover td{background:var(--bg-raised);}
+  .empty-row{text-align:center; padding:40px !important; color:var(--text) !important;}
+
+  @media (max-width:820px){
+    .topnav{padding:0 16px;}
+    .tabs{position:fixed; bottom:16px; left:16px; right:16px; top:auto;}
+    .brand span.full{display:none;}
+    .kpi-row{grid-template-columns:1fr 1fr;}
+    .side-panel{width:100%;}
+    .section-note{text-align:left;}
+    .hero-content{padding:48px 20px 64px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-field"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="dot"></span>NETRA<span class="full" style="color:var(--text);font-weight:400;margin-left:6px;">// noc</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="home">Главная</button>
+    <button class="tab-btn" data-view="viz">Визуализация</button>
+    <button class="tab-btn" data-view="stats">Статистика</button>
+  </div>
+  <div class="nav-status"><span class="pulse-dot"></span><span id="nav-status-text">СИСТЕМА АКТИВНА</span></div>
+</nav>
+
+<!-- ============ HOME ============ -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <video autoplay muted loop playsinline id="hero-video" src="netra-hero.mp4"></video>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Topology Engine · Live Monitoring</div>
+      <h1 class="hero-title">NETRA</h1>
+      <p class="hero-sub">NETRA превращает сырой JSON вашей сети в живую карту узлов и связей. Загрузите свой топологический срез или запустите один из демо-сценариев, чтобы увидеть нагрузку и отказы в реальном времени.</p>
+      <div class="hero-actions">
+        <label class="file-label">
+          <input type="file" id="file-input" accept="application/json">
+          <span class="btn-primary" id="upload-trigger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M5 21h14"/></svg>
+            Загрузить JSON
+          </span>
+        </label>
+        <button class="btn-ghost" id="scroll-demos">Демо-примеры ↓</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="demos-section">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Демо-наборы</div>
+        <h2 class="section-title">Выберите готовую топологию</h2>
+      </div>
+      <div class="section-note">Каждый набор — отдельный снимок сети: разная плотность связей, разная доля отказов.</div>
+    </div>
+    <div class="demo-grid">
+      <button class="demo-card" data-demo="loaded">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="10" x2="50" y2="10"/><line x1="10" y1="17" x2="42" y2="17"/><line x1="10" y1="24" x2="50" y2="24"/></svg>
+        <div><div class="demo-name">Нагруженная сеть</div><div class="demo-meta">18 УЗЛОВ · ВЫСОКАЯ НАГРУЗКА</div></div>
+      </button>
+      <button class="demo-card" data-demo="deadheavy">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="12" x2="30" y2="12"/><line x1="34" y1="12" x2="50" y2="12"/><line x1="10" y1="22" x2="24" y2="22"/><line x1="30" y1="22" x2="50" y2="22"/></svg>
+        <div><div class="demo-name">Много мёртвых узлов</div><div class="demo-meta">16 УЗЛОВ · 44% ОТКАЗОВ</div></div>
+      </button>
+      <button class="demo-card" data-demo="sparse">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="12" y1="17" x2="48" y2="10"/><line x1="12" y1="17" x2="48" y2="24"/></svg>
+        <div><div class="demo-name">Разреженный граф</div><div class="demo-meta">9 УЗЛОВ · МИНИМУМ СВЯЗЕЙ</div></div>
+      </button>
+      <button class="demo-card" data-demo="mixed">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="8" y1="9" x2="30" y2="17"/><line x1="30" y1="17" x2="52" y2="9"/><line x1="30" y1="17" x2="18" y2="26"/><line x1="30" y1="17" x2="44" y2="26"/></svg>
+        <div><div class="demo-name">Смешанная топология</div><div class="demo-meta">22 УЗЛА · РАЗНОРОДНАЯ НАГРУЗКА</div></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span>NETRA © 2026 · Визуализация сетевой топологии</span>
+    <span id="home-format-hint">Формат: {nodes:[{id,label,status}], links:[{source,target,load}]}</span>
+  </div>
+</section>
+
+<!-- ============ VISUALIZATION ============ -->
+<section class="view" id="view-viz">
+  <div class="viz-toolbar">
+    <div class="viz-toolbar-left">
+      <span>НАБОР: <b id="viz-dataset-name">—</b></span>
+      <span>УЗЛОВ: <b id="viz-node-count">0</b></span>
+      <span>СВЯЗЕЙ: <b id="viz-edge-count">0</b></span>
+    </div>
+    <div class="viz-toolbar-right">
+      <button class="tool-btn" id="btn-reset-view">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        Сбросить вид
+      </button>
+      <button class="tool-btn" id="btn-export-png">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Экспорт PNG
+      </button>
+    </div>
+  </div>
+  <div class="issues-banner" id="issues-banner">
+    <span class="ib-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+    </span>
+    <div class="ib-body">
+      <div class="ib-title" id="issues-banner-title">Обнаружены проблемы в данных</div>
+      <ul id="issues-banner-list"></ul>
+    </div>
+    <button class="ib-close" id="issues-banner-close">✕</button>
+  </div>
+  <div class="viz-stage">
+    <div id="cy"></div>
+    <div class="legend">
+      <h4>Нагрузка связей</h4>
+      <div class="legend-scale"></div>
+      <div class="legend-scale-labels"><span>0%</span><span>100%</span></div>
+      <h4 style="margin-top:16px;">Статус узла</h4>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--alive);"></span>Активен</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--dead);"></span>Недоступен</div>
+    </div>
+    <div class="side-panel" id="side-panel">
+      <button class="side-panel-close" id="panel-close">✕</button>
+      <div id="panel-body"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section class="view" id="view-stats">
+  <div class="stats-wrap">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Сводка</div>
+        <h2 class="section-title">Состояние сети</h2>
+      </div>
+      <div class="section-note">Показатели пересчитываются при загрузке нового набора данных.</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Всего узлов</div><div class="value" id="kpi-nodes">0</div></div>
+      <div class="kpi"><div class="label">Всего связей</div><div class="value" id="kpi-links">0</div></div>
+      <div class="kpi"><div class="label">Мёртвые узлы</div><div class="value warn" id="kpi-dead">0%</div><div class="sub" id="kpi-dead-count">0 узлов</div></div>
+      <div class="kpi"><div class="label">Средняя нагрузка</div><div class="value" id="kpi-load">0%</div></div>
+    </div>
+    <div class="section-label" style="margin-bottom:14px;">Таблица отказов</div>
+    <table class="dead-table">
+      <thead><tr><th>ID</th><th>Метка</th><th>Статус</th></tr></thead>
+      <tbody id="dead-table-body"><tr><td class="empty-row" colspan="3">Нет данных — загрузите набор на вкладке «Главная»</td></tr></tbody>
+    </table>
+
+    <div class="issues-section empty" id="issues-section">
+      <h4 id="issues-section-title">Проверка целостности данных</h4>
+      <div id="issues-section-body" style="font-size:13px;color:var(--text);">Загрузите набор, чтобы увидеть результат проверки.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ================= HERO VIDEO SPEED ================= */
+const heroVideo = document.getElementById("hero-video");
+
+/* ================= DEMO DATA ================= */
+const DEMOS = {
+  loaded: { name:"Нагруженная сеть", data:(()=>{
+    const nodes=[]; const links=[];
+    const labels=["core-fw01","core-sw01","core-sw02","edge-rtr01","edge-rtr02","dist-sw01","dist-sw02","dist-sw03","acc-sw01","acc-sw02","acc-sw03","acc-sw04","srv-db01","srv-db02","srv-app01","srv-app02","srv-cache01","mon-probe01"];
+    labels.forEach((l,i)=>nodes.push({id:"n"+i, label:l, status: i===13?"dead": "alive"}));
+    const pairs=[[0,1],[0,2],[1,3],[1,4],[2,3],[2,4],[3,5],[3,6],[4,6],[4,7],[5,8],[5,9],[6,9],[6,10],[7,10],[7,11],[8,12],[9,12],[9,13],[10,14],[10,15],[11,15],[11,16],[12,17],[14,17],[1,5],[2,7]];
+    pairs.forEach(([a,b],i)=>links.push({source:"n"+a, target:"n"+b, load: [88,92,74,81,95,67,73,84,91,62,78,86,69,93,58,71,89,64,55,77,82,90,66,72,85,60,94][i%27]/100 }));
+    return {nodes, links};
+  })()},
+  deadheavy: { name:"Много мёртвых узлов", data:(()=>{
+    const labels=["gw-primary","gw-backup","sw-floor1","sw-floor2","sw-floor3","rtr-branch01","rtr-branch02","srv-mail01","srv-file01","srv-print01","ap-lobby","ap-hall","ap-east","cam-entry01","cam-dock02","probe-net01"];
+    const deadIdx=new Set([1,3,4,6,8,9,12,13,14]);
+    const nodes=labels.map((l,i)=>({id:"n"+i, label:l, status: deadIdx.has(i)?"dead":"alive"}));
+    const pairs=[[0,1],[0,2],[2,3],[2,4],[0,5],[0,6],[5,7],[5,8],[6,9],[2,10],[2,11],[4,12],[3,13],[6,14],[0,15]];
+    const links=pairs.map(([a,b],i)=>({source:"n"+a,target:"n"+b, load:[45,12,38,8,52,15,29,6,41,18,34,9,22,5,48][i]/100}));
+    return {nodes, links};
+  })()},
+  sparse: { name:"Разреженный граф", data:(()=>{
+    const labels=["hub-central","node-a","node-b","node-c","node-d","node-e","node-f","node-g","satellite-01"];
+    const nodes=labels.map((l,i)=>({id:"n"+i, label:l, status: i===8?"dead":"alive"}));
+    const pairs=[[0,1],[0,2],[0,3],[3,4],[4,5],[1,6],[6,7],[7,8]];
+    const links=pairs.map(([a,b],i)=>({source:"n"+a,target:"n"+b, load:[30,42,18,25,55,12,20,7][i]/100}));
+    return {nodes, links};
+  })()},
+  mixed: { name:"Смешанная топология", data:(()=>{
+    const labels=["dc-east-core","dc-west-core","rtr-transit01","rtr-transit02","fw-perimeter","lb-front01","lb-front02","srv-web01","srv-web02","srv-web03","srv-api01","srv-api02","db-primary","db-replica","cache-redis01","queue-mq01","cdn-edge01","cdn-edge02","mon-graf01","mon-prom01","dns-primary","dns-secondary"];
+    const deadIdx=new Set([9,13,16,20]);
+    const nodes=labels.map((l,i)=>({id:"n"+i, label:l, status: deadIdx.has(i)?"dead":"alive"}));
+    const pairs=[[0,1],[0,2],[1,3],[2,4],[3,4],[4,5],[4,6],[5,7],[5,8],[6,9],[6,10],[7,12],[8,12],[9,13],[10,11],[11,12],[10,14],[11,15],[5,16],[6,17],[0,18],[1,19],[2,20],[3,21],[7,14],[8,15]];
+    const links=pairs.map(([a,b],i)=>({source:"n"+a,target:"n"+b, load:[70,55,80,44,90,63,38,72,29,85,51,67,33,95,58,41,76,22,64,47,88,35,59,26,73,48][i%26]/100}));
+    return {nodes, links};
+  })()},
+};
+
+/* ================= STATE ================= */
+let currentData = null;
+let currentName = "—";
+let currentIssues = [];
+let cy = null;
+let deadPulseRAF = null;
+
+/* ================= TAB SWITCHING ================= */
+const views = { home:document.getElementById("view-home"), viz:document.getElementById("view-viz"), stats:document.getElementById("view-stats") };
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>setView(btn.dataset.view));
+});
+function setView(name){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+  Object.entries(views).forEach(([k,el])=>el.classList.toggle("active", k===name));
+  window.scrollTo(0, 0);
+  if(name==="viz" && cy){ setTimeout(()=>cy.resize(), 60); }
+}
+
+document.getElementById("scroll-demos").addEventListener("click", ()=>{
+  document.getElementById("demos-section").scrollIntoView({behavior:"smooth"});
+});
+
+/* ================= LOAD DATA ================= */
+document.querySelectorAll(".demo-card").forEach(card=>{
+  card.addEventListener("click", ()=>{
+    const key = card.dataset.demo;
+    loadDataset(DEMOS[key].data, DEMOS[key].name);
+    setView("viz");
+  });
+});
+
+document.getElementById("file-input").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      if(!Array.isArray(parsed.nodes) || !Array.isArray(parsed.links)) throw new Error("bad format");
+      loadDataset(parsed, file.name.replace(/\.json$/i,""));
+      setView("viz");
+    }catch(err){
+      alert("Не удалось разобрать файл. Ожидается формат { nodes:[...], links:[...] }");
+    }
+  };
+  reader.readAsText(file);
+});
+
+function loadDataset(data, name){
+  currentData = data;
+  currentName = name;
+  currentIssues = validateDataset(data);
+  document.getElementById("nav-status-text").textContent = name.toUpperCase() + (currentIssues.length ? " · ОШИБКИ" : "");
+  renderGraph(data);
+  renderStats(data);
+  renderIssuesBanner(currentIssues);
+  renderIssuesSection(currentIssues);
+}
+
+/* ================= VALIDATION ================= */
+function validateDataset(data){
+  const issues = [];
+  const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+  const links = Array.isArray(data.links) ? data.links : [];
+
+  const idSeen = {};
+  nodes.forEach((n,i)=>{
+    if(n.id===undefined || n.id===null || n.id==="") issues.push(`Узел #${i}: отсутствует поле "id"`);
+    else idSeen[n.id] = (idSeen[n.id]||0) + 1;
+    if(!n.label) issues.push(`Узел ${n.id ?? '#'+i}: отсутствует поле "label"`);
+    if(n.status !== "alive" && n.status !== "dead") issues.push(`Узел ${n.id ?? '#'+i}: неизвестный статус "${n.status}"`);
+  });
+  Object.entries(idSeen).forEach(([id,count])=>{
+    if(count>1) issues.push(`Дублирующийся id узла "${id}" встречается ${count} раза`);
+  });
+
+  const nodeIds = new Set(nodes.map(n=>n.id));
+  links.forEach((l,i)=>{
+    if(!nodeIds.has(l.source)) issues.push(`Связь #${i}: источник "${l.source}" не найден среди узлов — соединение оборвано`);
+    if(!nodeIds.has(l.target)) issues.push(`Связь #${i}: назначение "${l.target}" не найдено среди узлов — соединение оборвано`);
+    if(l.source===l.target && l.source!==undefined) issues.push(`Связь #${i}: узел "${l.source}" замкнут сам на себя`);
+    if(typeof l.load!=="number" || isNaN(l.load)) issues.push(`Связь #${i} (${l.source}→${l.target}): нагрузка не является числом ("${l.load}")`);
+    else if(l.load<0 || l.load>1) issues.push(`Связь #${i} (${l.source}→${l.target}): нагрузка вне диапазона 0–1 (${l.load})`);
+  });
+
+  const connected = new Set();
+  links.forEach(l=>{ connected.add(l.source); connected.add(l.target); });
+  nodes.forEach(n=>{
+    if(n.id!==undefined && !connected.has(n.id)) issues.push(`Узел ${n.id} (${n.label||'без метки'}) изолирован — не имеет ни одной связи`);
+  });
+
+  return issues;
+}
+
+function renderIssuesBanner(issues){
+  const banner = document.getElementById("issues-banner");
+  const list = document.getElementById("issues-banner-list");
+  const title = document.getElementById("issues-banner-title");
+  if(!issues.length){ banner.classList.remove("show"); return; }
+  title.textContent = `Обнаружено проблем: ${issues.length}`;
+  list.innerHTML = issues.map(m=>`<li>${m}</li>`).join("");
+  banner.classList.add("show");
+}
+document.getElementById("issues-banner-close").addEventListener("click", ()=>{
+  document.getElementById("issues-banner").classList.remove("show");
+});
+
+function renderIssuesSection(issues){
+  const section = document.getElementById("issues-section");
+  const title = document.getElementById("issues-section-title");
+  const body = document.getElementById("issues-section-body");
+  if(!issues.length){
+    section.classList.add("empty");
+    title.textContent = "Проверка целостности данных";
+    body.innerHTML = currentData ? "Ошибок не обнаружено — набор данных консистентен." : "Загрузите набор, чтобы увидеть результат проверки.";
+    return;
+  }
+  section.classList.remove("empty");
+  title.textContent = `Проверка целостности данных — найдено ${issues.length}`;
+  body.innerHTML = `<ul>${issues.map(m=>`<li>${m}</li>`).join("")}</ul>`;
+}
+
+/* ================= GRAPH RENDERING ================= */
+function loadColor(load){
+  // 0 -> deep navy, 1 -> bright blue/white
+  const stops = [
+    {t:0, c:[22,35,59]},
+    {t:.5, c:[59,130,246]},
+    {t:1, c:[147,197,253]},
+  ];
+  let a=stops[0], b=stops[1];
+  if(load>.5){a=stops[1]; b=stops[2];}
+  const localT = a.t===b.t?0:(load-a.t)/(b.t-a.t);
+  const c = a.c.map((v,i)=>Math.round(v + (b.c[i]-v)*localT));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function buildElements(data){
+  const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+  const links = Array.isArray(data.links) ? data.links : [];
+  const elements = [];
+  const seenIds = new Set();
+  const dupCounter = {};
+
+  nodes.forEach(n=>{
+    let id = n.id;
+    if(id===undefined || id===null || id==="") return; // unusable, already flagged
+    if(seenIds.has(id)){
+      dupCounter[id] = (dupCounter[id]||1) + 1;
+      id = `${id}__dup${dupCounter[id]}`;
+    }
+    seenIds.add(id);
+    let status = n.status==="dead" ? "dead" : n.status==="alive" ? "alive" : "unknown";
+    elements.push({group:"nodes", data:{id, label:n.label || String(id), status}});
+  });
+
+  const knownIds = new Set(elements.map(e=>e.data.id));
+  const ghosted = new Set();
+
+  links.forEach((l,i)=>{
+    const src = l.source, tgt = l.target;
+    [src, tgt].forEach(refId=>{
+      if(refId!==undefined && !knownIds.has(refId) && !ghosted.has(refId)){
+        elements.push({group:"nodes", data:{id:refId, label:"⚠ "+refId, status:"missing"}});
+        knownIds.add(refId);
+        ghosted.add(refId);
+      }
+    });
+    const rawLoad = l.load;
+    const validLoad = typeof rawLoad==="number" && !isNaN(rawLoad);
+    const load = validLoad ? Math.max(0, Math.min(1, rawLoad)) : 0;
+    const broken = !validLoad || rawLoad<0 || rawLoad>1 || ghosted.has(src) || ghosted.has(tgt) || src===tgt;
+    if(src!==undefined && tgt!==undefined){
+      elements.push({group:"edges", data:{id:"e"+i, source:src, target:tgt, load, broken}});
+    }
+  });
+
+  return elements;
+}
+
+function renderGraph(data){
+  document.getElementById("viz-dataset-name").textContent = currentName;
+  document.getElementById("viz-node-count").textContent = (data.nodes||[]).length;
+  document.getElementById("viz-edge-count").textContent = (data.links||[]).length;
+
+  const elements = buildElements(data);
+
+  if(cy){ cy.destroy(); }
+  if(deadPulseRAF) cancelAnimationFrame(deadPulseRAF);
+
+  cy = cytoscape({
+    container: document.getElementById("cy"),
+    elements,
+    style: [
+      { selector:"node", style:{
+        "label":"data(label)",
+        "color":"#94a3b8",
+        "font-family":"var(--mono)",
+        "font-size":10,
+        "text-valign":"bottom",
+        "text-margin-y":8,
+        "width": 0, "height": 0,
+        "background-color": ele=> ele.data("status")==="dead" ? "#ef4444" : "#22c55e",
+        "border-width":2,
+        "border-color": ele=> ele.data("status")==="dead" ? "#7f1d1d" : "#14532d",
+        "transition-property":"width,height,border-opacity,opacity",
+        "transition-duration":600,
+        "transition-timing-function":"ease-out",
+      }},
+      { selector:"node:selected", style:{ "border-color":"#3b82f6", "border-width":3 }},
+      { selector:'node[status="unknown"]', style:{
+        "background-color":"#64748b", "border-color":"#334155",
+      }},
+      { selector:'node[status="missing"]', style:{
+        "background-color":"#0a0e17", "background-opacity":1,
+        "border-color":"#ef4444", "border-style":"dashed", "border-width":3,
+        "shape":"diamond", "color":"#fca5a5",
+      }},
+      { selector:"edge", style:{
+        "width": ele=> 1 + ele.data("load")*5,
+        "line-color": ele=> loadColor(ele.data("load")),
+        "target-arrow-shape":"none",
+        "curve-style":"bezier",
+        "opacity":0,
+        "transition-property":"opacity",
+        "transition-duration":700,
+      }},
+      { selector:"edge[?broken]", style:{
+        "line-color":"#ef4444", "line-style":"dashed", "width":2,
+      }},
+      { selector:"edge:selected", style:{ "line-color":"#93c5fd", "width": ele=> 3 + ele.data("load")*5 }},
+    ],
+    layout: { name:"cose", animate:true, animationDuration:700, nodeRepulsion: 9000, idealEdgeLength: 90, gravity: 0.35, fit:true, padding:40 },
+    wheelSensitivity:.25,
+  });
+
+  cy.ready(()=>{
+    cy.nodes().forEach(n=>{ n.style({width:34, height:34, opacity:1}); });
+    cy.edges().style({opacity:1});
+    startDeadPulse();
+  });
+
+  cy.on("tap", "node", (evt)=> showNodePanel(evt.target));
+  cy.on("tap", "edge", (evt)=> showEdgePanel(evt.target));
+  cy.on("tap", (evt)=>{ if(evt.target===cy) closePanel(); });
+}
+
+function startDeadPulse(){
+  let t = 0;
+  function tick(){
+    t += 0.05;
+    const pulse = 0.4 + Math.abs(Math.sin(t)) * 0.6;
+    cy.nodes('[status="dead"]').style({ "border-opacity": pulse });
+    deadPulseRAF = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+/* ================= SIDE PANEL ================= */
+const panel = document.getElementById("side-panel");
+function statusChip(status){
+  const map = {
+    dead: {color:"var(--dead)", label:"Недоступен"},
+    alive: {color:"var(--alive)", label:"Активен"},
+    missing: {color:"var(--dead)", label:"Не найден в узлах"},
+    unknown: {color:"#64748b", label:"Неизвестный статус"},
+  };
+  const s = map[status] || map.unknown;
+  return `<span class="status-chip"><span class="d" style="background:${s.color}"></span>${s.label}</span>`;
+}
+function showNodePanel(node){
+  const d = node.data();
+  const neighbors = node.neighborhood('node').map(n=>n.data('label'));
+  document.getElementById("panel-body").innerHTML = `
+    <div class="panel-kind">Узел</div>
+    <div class="panel-title">${d.label}</div>
+    <div class="panel-field"><div class="k">ID</div><div class="v">${d.id}</div></div>
+    <div class="panel-field"><div class="k">Статус</div><div class="v">${statusChip(d.status)}</div></div>
+    <div class="panel-field"><div class="k">Связанные узлы (${neighbors.length})</div><div class="v">${neighbors.join(", ") || "—"}</div></div>
+  `;
+  panel.classList.add("open");
+}
+function showEdgePanel(edge){
+  const d = edge.data();
+  const src = cy.getElementById(d.source).data("label");
+  const tgt = cy.getElementById(d.target).data("label");
+  document.getElementById("panel-body").innerHTML = `
+    <div class="panel-kind">Связь</div>
+    <div class="panel-title">${src} → ${tgt}</div>
+    <div class="panel-field"><div class="k">Источник</div><div class="v">${src}</div></div>
+    <div class="panel-field"><div class="k">Назначение</div><div class="v">${tgt}</div></div>
+    <div class="panel-field"><div class="k">Нагрузка</div><div class="v">${Math.round(d.load*100)}%</div></div>
+  `;
+  panel.classList.add("open");
+}
+function closePanel(){ panel.classList.remove("open"); }
+document.getElementById("panel-close").addEventListener("click", closePanel);
+
+/* ================= TOOLBAR ================= */
+document.getElementById("btn-reset-view").addEventListener("click", ()=>{ if(cy){ cy.fit(undefined, 40); } });
+document.getElementById("btn-export-png").addEventListener("click", ()=>{
+  if(!cy) return;
+  const png = cy.png({full:true, scale:2, bg:"#0a0e17"});
+  const a = document.createElement("a");
+  a.href = png; a.download = `netra-${currentName.replace(/\s+/g,'_')}.png`;
+  a.click();
+});
+
+/* ================= STATS ================= */
+function renderStats(data){
+  const total = data.nodes.length;
+  const dead = data.nodes.filter(n=>n.status==="dead");
+  const deadPct = total ? Math.round((dead.length/total)*1000)/10 : 0;
+  const avgLoad = data.links.length ? Math.round((data.links.reduce((s,l)=>s+l.load,0)/data.links.length)*1000)/10 : 0;
+
+  document.getElementById("kpi-nodes").textContent = total;
+  document.getElementById("kpi-links").textContent = data.links.length;
+  document.getElementById("kpi-dead").textContent = deadPct + "%";
+  document.getElementById("kpi-dead-count").textContent = dead.length + " узлов";
+  document.getElementById("kpi-load").textContent = avgLoad + "%";
+
+  const body = document.getElementById("dead-table-body");
+  if(dead.length===0){
+    body.innerHTML = `<tr><td class="empty-row" colspan="3">Мёртвых узлов не обнаружено</td></tr>`;
+  } else {
+    body.innerHTML = dead.map(n=>`
+      <tr><td>${n.id}</td><td>${n.label}</td><td>${statusChip(n.status)}</td></tr>
+    `).join("");
+  }
+}
+</script>
+</body>
+</html>

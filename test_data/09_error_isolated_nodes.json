@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    {"id": "core-main", "label": "core-main", "status": "alive"},
+    {"id": "sw-01", "label": "sw-01", "status": "alive"},
+    {"id": "sw-02", "label": "sw-02", "status": "alive"},
+    {"id": "srv-01", "label": "srv-01", "status": "alive"},
+    {"id": "orphan-sensor01", "label": "orphan-sensor01", "status": "alive"},
+    {"id": "orphan-cam04", "label": "orphan-cam04", "status": "dead"},
+    {"id": "orphan-relay02", "label": "orphan-relay02", "status": "alive"}
+  ],
+  "links": [
+    {"source": "core-main", "target": "sw-01", "load": 0.5},
+    {"source": "core-main", "target": "sw-02", "load": 0.45},
+    {"source": "sw-01", "target": "srv-01", "load": 0.6}
+  ]
+}
