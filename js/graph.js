@@ -108,7 +108,7 @@ function renderGraph(data){
       }},
       { selector:"edge:selected", style:{ "line-color":"#93c5fd", "width": ele=> 3 + ele.data("load")*5 }},
     ],
-    layout: { name:"cose", animate:true, animationDuration:700, nodeRepulsion: 9000, idealEdgeLength: 90, gravity: 0.35, fit:true, padding:40 },
+    layout: { name:"cose", animate:true, animationDuration:700, nodeRepulsion: 90000, idealEdgeLength: 90, gravity: 0.35, fit:true, padding:40 },
     wheelSensitivity:.25,
   });
 
