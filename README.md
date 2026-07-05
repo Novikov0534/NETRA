@@ -53,9 +53,10 @@
 ```bash
 git clone https://github.com/Novikov0534/NETRA.git
 cd NETRA
-open index.html   # или дважды кликните по файлу
+# затем откройте index.html в браузере (двойной клик по файлу)
+```
 
-> Единственная внешняя зависимость — [Cytoscape.js](https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js), подключается через CDN, интернет нужен только при первой загрузке.
+> **Единственная внешняя зависимость** — [Cytoscape.js](https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js). Подключается через CDN, интернет нужен только при первой загрузке.
 
 ---
 
