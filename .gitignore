@@ -1,0 +1,14 @@
+# Runtime logs
+logs/
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak

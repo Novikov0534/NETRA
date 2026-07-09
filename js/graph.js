@@ -33,6 +33,7 @@ function buildElements(data){
   });
 
   const knownIds = new Set(elements.map(e=>e.data.id));
+  const statusById = new Map(elements.map(e=>[e.data.id, e.data.status]));
   const ghosted = new Set();
 
   links.forEach((l,i)=>{
@@ -41,6 +42,7 @@ function buildElements(data){
       if(refId!==undefined && !knownIds.has(refId) && !ghosted.has(refId)){
         elements.push({group:"nodes", data:{id:refId, label:"⚠ "+refId, status:"missing"}});
         knownIds.add(refId);
+        statusById.set(refId, "missing");
         ghosted.add(refId);
       }
     });
@@ -48,8 +50,9 @@ function buildElements(data){
     const validLoad = typeof rawLoad==="number" && !isNaN(rawLoad);
     const load = validLoad ? Math.max(0, Math.min(1, rawLoad)) : 0;
     const broken = !validLoad || rawLoad<0 || rawLoad>1 || ghosted.has(src) || ghosted.has(tgt) || src===tgt;
+    const deadLink = statusById.get(src)==="dead" && statusById.get(tgt)==="dead";
     if(src!==undefined && tgt!==undefined){
-      elements.push({group:"edges", data:{id:"e"+i, source:src, target:tgt, load, broken}});
+      elements.push({group:"edges", data:{id:"e"+i, source:src, target:tgt, load, broken, deadLink}});
     }
   });
 
@@ -102,6 +105,9 @@ function renderGraph(data){
         "opacity":0,
         "transition-property":"opacity",
         "transition-duration":700,
+      }},
+      { selector:"edge[?deadLink]", style:{
+        "line-color":"#ef4444", "width": ele=> Math.max(3, 2 + ele.data("load")*5),
       }},
       { selector:"edge[?broken]", style:{
         "line-color":"#ef4444", "line-style":"dashed", "width":2,
@@ -162,11 +168,13 @@ function showEdgePanel(edge){
   const d = edge.data();
   const src = cy.getElementById(d.source).data("label");
   const tgt = cy.getElementById(d.target).data("label");
+  const state = d.deadLink ? "Связь между недоступными узлами" : d.broken ? "Проблемная связь" : "Рабочая связь";
   document.getElementById("panel-body").innerHTML = `
     <div class="panel-kind">Связь</div>
     <div class="panel-title">${src} → ${tgt}</div>
     <div class="panel-field"><div class="k">Источник</div><div class="v">${src}</div></div>
     <div class="panel-field"><div class="k">Назначение</div><div class="v">${tgt}</div></div>
+    <div class="panel-field"><div class="k">Состояние</div><div class="v">${state}</div></div>
     <div class="panel-field"><div class="k">Нагрузка</div><div class="v">${Math.round(d.load*100)}%</div></div>
   `;
   panel.classList.add("open");
