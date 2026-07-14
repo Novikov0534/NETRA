@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NETRA — Network Topology Engine</title>
-<link rel="icon" type="image/png" href="docs/favicon.png">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-<link rel="stylesheet" href="css/style.css">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<script src="libs/cytoscape.min.js"></script>
+<link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <!-- ============ HOME ============ -->
 <section class="view active" id="view-home">
   <div class="hero">
-    <video autoplay muted loop playsinline id="hero-video" src="docs/netra-hero.mp4"></video>
+    <video autoplay muted loop playsinline id="hero-video" src="assets/netra-hero.mp4"></video>
     <div class="hero-content">
       <div class="hero-eyebrow">Topology Engine · Live Monitoring</div>
       <h1 class="hero-title">NETRA</h1>
@@ -43,6 +43,32 @@
     </div>
   </div>
 
+  <div class="section home-workspace" id="home-workspace">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Рабочая область</div>
+        <h2 class="section-title">Быстрый старт</h2>
+      </div>
+      <div class="quick-actions">
+        <button class="btn-primary" id="quick-upload-trigger">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M5 21h14"/></svg>
+          Загрузить JSON
+        </button>
+        <button class="btn-ghost" id="clear-recent">Очистить историю</button>
+      </div>
+    </div>
+    <div class="workspace-grid">
+      <section class="workspace-panel">
+        <div class="workspace-panel-title">Открытые визуализации</div>
+        <div class="dataset-list" id="open-dataset-list"></div>
+      </section>
+      <section class="workspace-panel">
+        <div class="workspace-panel-title">Последние JSON</div>
+        <div class="dataset-list" id="recent-dataset-list"></div>
+      </section>
+    </div>
+  </div>
+
   <div class="section" id="demos-section">
     <div class="section-head">
       <div>
@@ -54,11 +80,11 @@
     <div class="demo-grid">
       <button class="demo-card" data-demo="loaded">
         <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="10" x2="50" y2="10"/><line x1="10" y1="17" x2="42" y2="17"/><line x1="10" y1="24" x2="50" y2="24"/></svg>
-        <div><div class="demo-name">Нагруженная сеть</div><div class="demo-meta">18 УЗЛОВ · ВЫСОКАЯ НАГРУЗКА</div></div>
+        <div><div class="demo-name">Нагруженная сеть</div><div class="demo-meta">15 УЗЛОВ · ВЫСОКАЯ НАГРУЗКА</div></div>
       </button>
       <button class="demo-card" data-demo="deadheavy">
         <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="12" x2="30" y2="12"/><line x1="34" y1="12" x2="50" y2="12"/><line x1="10" y1="22" x2="24" y2="22"/><line x1="30" y1="22" x2="50" y2="22"/></svg>
-        <div><div class="demo-name">Много мёртвых узлов</div><div class="demo-meta">16 УЗЛОВ · 44% ОТКАЗОВ</div></div>
+        <div><div class="demo-name">Много мёртвых узлов</div><div class="demo-meta">16 УЗЛОВ · 56% ОТКАЗОВ</div></div>
       </button>
       <button class="demo-card" data-demo="sparse">
         <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="12" y1="17" x2="48" y2="10"/><line x1="12" y1="17" x2="48" y2="24"/></svg>
@@ -67,6 +93,10 @@
       <button class="demo-card" data-demo="mixed">
         <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="8" y1="9" x2="30" y2="17"/><line x1="30" y1="17" x2="52" y2="9"/><line x1="30" y1="17" x2="18" y2="26"/><line x1="30" y1="17" x2="44" y2="26"/></svg>
         <div><div class="demo-name">Смешанная топология</div><div class="demo-meta">22 УЗЛА · РАЗНОРОДНАЯ НАГРУЗКА</div></div>
+      </button>
+      <button class="demo-card" data-demo="critical">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="12" y1="10" x2="48" y2="24"/><line x1="12" y1="24" x2="48" y2="10"/><line x1="30" y1="8" x2="30" y2="26"/></svg>
+        <div><div class="demo-name">Критическая сеть</div><div class="demo-meta">5 УЗЛОВ · ОШИБКИ ДАННЫХ</div></div>
       </button>
     </div>
   </div>
@@ -79,23 +109,7 @@
 
 <!-- ============ VISUALIZATION ============ -->
 <section class="view" id="view-viz">
-  <div class="viz-toolbar">
-    <div class="viz-toolbar-left">
-      <span>НАБОР: <b id="viz-dataset-name">—</b></span>
-      <span>УЗЛОВ: <b id="viz-node-count">0</b></span>
-      <span>СВЯЗЕЙ: <b id="viz-edge-count">0</b></span>
-    </div>
-    <div class="viz-toolbar-right">
-      <button class="tool-btn" id="btn-reset-view">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
-        Сбросить вид
-      </button>
-      <button class="tool-btn" id="btn-export-png">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-        Экспорт PNG
-      </button>
-    </div>
-  </div>
+  <div class="dataset-tabs" id="dataset-tabs"></div>
   <div class="issues-banner" id="issues-banner">
     <span class="ib-icon">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
@@ -115,16 +129,35 @@
       <h4 style="margin-top:16px;">Статус узла</h4>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--alive);"></span>Активен</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--dead);"></span>Недоступен</div>
+      <div class="legend-row"><span class="legend-line-swatch"></span>Связь между недоступными</div>
     </div>
     <div class="side-panel" id="side-panel">
       <button class="side-panel-close" id="panel-close">✕</button>
       <div id="panel-body"></div>
     </div>
   </div>
+  <div class="viz-toolbar">
+    <div class="viz-toolbar-left">
+      <span>НАБОР: <b id="viz-dataset-name">—</b></span>
+      <span>УЗЛОВ: <b id="viz-node-count">0</b></span>
+      <span>СВЯЗЕЙ: <b id="viz-edge-count">0</b></span>
+    </div>
+    <div class="viz-toolbar-right">
+      <button class="tool-btn" id="btn-reset-view">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        Сбросить вид
+      </button>
+      <button class="tool-btn" id="btn-export-png">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Экспорт PNG
+      </button>
+    </div>
+  </div>
 </section>
 
 <!-- ============ STATS ============ -->
 <section class="view" id="view-stats">
+  <div class="dataset-tabs stats-dataset-tabs" id="stats-dataset-tabs"></div>
   <div class="stats-wrap">
     <div class="section-head">
       <div>
@@ -152,9 +185,11 @@
   </div>
 </section>
 
-<script src="js/validators.js"></script>
-<script src="js/graph.js"></script>
-<script src="js/stats.js"></script>
-<script src="js/app.js"></script>
+<script src="js/validators.js?v=8"></script>
+<script src="js/graph.js?v=8"></script>
+<script src="js/stats.js?v=8"></script>
+<script src="js/filters.js?v=8"></script>
+<script src="js/demo-data.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
 </body>
 </html>
