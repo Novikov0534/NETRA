@@ -127,54 +127,87 @@ recentDatasetList.addEventListener("click", handleDatasetListClick);
 datasetTabs.addEventListener("click", handleDatasetListClick);
 statsDatasetTabs.addEventListener("click", handleDatasetListClick);
 
-function handleDatasetListClick(evt){
+function handleDatasetListClick(evt) {
   const fromStatsTabs = Boolean(evt.currentTarget.closest("#view-stats"));
 
   const closeBtn = evt.target.closest("[data-close-dataset]");
-  if(closeBtn){
+  if (closeBtn) {
     closeDataset(closeBtn.dataset.closeDataset);
     return;
   }
 
   const sessionBtn = evt.target.closest("[data-open-dataset]");
-  if(sessionBtn){
+  if (sessionBtn) {
     activateDataset(sessionBtn.dataset.openDataset);
-    if(!fromStatsTabs) setView("viz");
+    if (!fromStatsTabs) setView("viz");
     return;
   }
 
   const recentBtn = evt.target.closest("[data-recent-dataset]");
-  if(recentBtn){
+  if (recentBtn) {
     const recent = getRecentDatasets();
-    const item = recent.find(d=>d.id===recentBtn.dataset.recentDataset);
-    if(item){
-      openDataset(item.data, item.name, { source:item.source || "history" });
-      setView("viz");
+    const item = recent.find(d => d.id === recentBtn.dataset.recentDataset);
+    
+    if (item) {
+      // доп страховка на открытие датасета
+      const existing = openedDatasets.find(d => 
+        d.name === item.name && 
+        d.source === (item.source || "history")
+      );
+      
+      if (existing) {
+        activateDataset(existing.id);
+      } else {
+        openDataset(item.data, item.name, { source: item.source || "history" });
+      }
+      
+      if (!fromStatsTabs) setView("viz");
     }
   }
 }
 
-function openDataset(data, name, options = {}){
+function openDataset(data, name, options = {}) {
+  const source = options.source || "file";
+
+  //  ищем уже открытый датасет с таким же именем и источником.
+  const existing = openedDatasets.find(d => d.name === name && d.source === source);
+
+  if (existing) {
+    activateDataset(existing.id);
+    return; // Прерываем выполнение, дубликат не создается, просто переключаемся н него
+  }
+
+  // Если это ручная загрузка файла  с тем же именем, мы удаляем старую версию, чтобы показать свежие данные 
+
+  if (source === "file") {
+    const oldFileIndex = openedDatasets.findIndex(d => d.name === name);
+    if (oldFileIndex !== -1) {
+      openedDatasets.splice(oldFileIndex, 1);
+    }
+  }
+
   const id = options.id || createDatasetId();
   const dataset = {
     id,
     name: name || "Без названия",
-    source: options.source || "file",
+    source: source,
     openedAt: Date.now(),
     data,
   };
 
-  const existingIndex = openedDatasets.findIndex(item=>item.id===id);
-  if(existingIndex >= 0) openedDatasets[existingIndex] = dataset;
-  else openedDatasets.push(dataset);
-
+  openedDatasets.push(dataset);
   saveRecentDataset(dataset);
   activateDataset(id);
 }
 
-function activateDataset(id){
-  const dataset = openedDatasets.find(item=>item.id===id);
-  if(!dataset) return;
+function activateDataset(id) {
+  // Если этот датасет уже активен - ничего не делаем
+  if (activeDatasetId === id) {
+    return; 
+  }
+
+  const dataset = openedDatasets.find(item => item.id === id);
+  if (!dataset) return;
 
   activeDatasetId = id;
   currentData = dataset.data;
@@ -182,6 +215,13 @@ function activateDataset(id){
   currentIssues = validateDataset(dataset.data);
 
   document.getElementById("nav-status-text").textContent = currentName.toUpperCase() + (currentIssues.length ? " · ОШИБКИ" : "");
+  
+  // Сбрасываем фильтры при переключении на новый граф
+  if (typeof resetFilters === 'function') {
+    resetFilters();
+  }
+  
+  // Перерисовка происходит  если мы переключились на другой  датасет (не пофиксить так как у нас cy один)
   renderGraph(dataset.data);
   renderStats(dataset.data);
   renderIssuesBanner(currentIssues);

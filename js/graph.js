@@ -1,6 +1,5 @@
 /* ================= GRAPH RENDERING ================= */
 function loadColor(load){
-  // 0 -> deep navy, 1 -> bright blue/white
   const stops = [
     {t:0, c:[22,35,59]},
     {t:.5, c:[59,130,246]},
@@ -22,7 +21,7 @@ function buildElements(data){
 
   nodes.forEach(n=>{
     let id = n.id;
-    if(id===undefined || id===null || id==="") return; // unusable, already flagged
+    if(id===undefined || id===null || id==="") return;
     if(seenIds.has(id)){
       dupCounter[id] = (dupCounter[id]||1) + 1;
       id = `${id}__dup${dupCounter[id]}`;
@@ -80,13 +79,13 @@ function renderGraph(data){
         "font-size":10,
         "text-valign":"bottom",
         "text-margin-y":8,
-        "width": 0, "height": 0,
-        "background-color": ele=> ele.data("status")==="dead" ? "#ef4444" : "#22c55e",
-        "border-width":2,
-        "border-color": ele=> ele.data("status")==="dead" ? "#7f1d1d" : "#14532d",
-        "transition-property":"width,height,border-opacity,opacity",
-        "transition-duration":600,
-        "transition-timing-function":"ease-out",
+        "background-color": ele => ele.data("status") === "dead" ? "#991b1b" : "#22c55e",
+        "border-width": 2,
+        "border-color": ele => ele.data("status") === "dead" ? "#ef4444" : "#14532d",
+        "border-opacity": 1,
+        "transition-property": "width, height, border-opacity, opacity",
+        "transition-duration": "0.3s",
+        "transition-timing-function": "ease-out",
       }},
       { selector:"node:selected", style:{ "border-color":"#3b82f6", "border-width":3 }},
       { selector:'node[status="unknown"]', style:{
@@ -124,20 +123,48 @@ function renderGraph(data){
     startDeadPulse();
   });
 
-  cy.on("tap", "node", (evt)=> showNodePanel(evt.target));
-  cy.on("tap", "edge", (evt)=> showEdgePanel(evt.target));
-  cy.on("tap", (evt)=>{ if(evt.target===cy) closePanel(); });
+  // При клике на узел вызываем функцию фокуса
+  cy.on("tap", "node", (evt) => {
+    focusNode(evt.target);
+  });
+  
+    cy.on("tap", "edge", (evt) => {
+    focusEdge(evt.target);
+    });
+  cy.on("tap", (evt)=>{ 
+    if(evt.target===cy) { 
+      closePanel(); 
+      resetSearchHighlight(); 
+    } 
+  });
 }
 
-function startDeadPulse(){
-  let t = 0;
-  function tick(){
-    t += 0.05;
-    const pulse = 0.4 + Math.abs(Math.sin(t)) * 0.6;
-    cy.nodes('[status="dead"]').style({ "border-opacity": pulse });
+function startDeadPulse() {
+  if (deadPulseRAF) cancelAnimationFrame(deadPulseRAF);
+
+  let startTime = null;
+  const duration = 1200;
+
+  function tick(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const progress = ((timestamp - startTime) % duration) / duration;
+    const pulseFactor = Math.sin(progress * Math.PI);
+
+    const size = 34 + (pulseFactor * 10);
+    const borderWidth = 2 + (pulseFactor * 4);
+    const borderOpacity = 0.6 + (pulseFactor * 0.4);
+
+    cy.nodes('[status="dead"]').style({
+      "width": size,
+      "height": size,
+      "border-width": borderWidth,
+      "border-opacity": borderOpacity
+    });
+
     deadPulseRAF = requestAnimationFrame(tick);
   }
-  tick();
+
+  deadPulseRAF = requestAnimationFrame(tick);
 }
 
 /* ================= SIDE PANEL ================= */
@@ -152,6 +179,7 @@ function statusChip(status){
   const s = map[status] || map.unknown;
   return `<span class="status-chip"><span class="d" style="background:${s.color}"></span>${s.label}</span>`;
 }
+
 function showNodePanel(node){
   const d = node.data();
   const neighbors = node.neighborhood('node').map(n=>n.data('label'));
@@ -164,6 +192,7 @@ function showNodePanel(node){
   `;
   panel.classList.add("open");
 }
+
 function showEdgePanel(edge){
   const d = edge.data();
   const src = cy.getElementById(d.source).data("label");
@@ -179,8 +208,254 @@ function showEdgePanel(edge){
   `;
   panel.classList.add("open");
 }
-function closePanel(){ panel.classList.remove("open"); }
+
+function closePanel(){ 
+  panel.classList.remove("open");
+  resetSearchHighlight();
+  
+  if (cy) {
+    cy.stop(true, false); 
+    cy.animate({
+      fit: { eles: cy.elements(), padding: 40 },
+      duration: 400,
+      easing: 'ease-in-out-cubic'
+    });
+  }
+  
+  if (typeof applyFilters === 'function') {
+    setTimeout(() => applyFilters(), 50);
+  }
+}
 document.getElementById("panel-close").addEventListener("click", closePanel);
+
+/* ================= UNIVERSAL FOCUS & SEARCH ================= */
+const searchInput = document.getElementById('graph-search-input');
+const searchResults = document.getElementById('graph-search-results');
+const searchClear = document.getElementById('graph-search-clear');
+
+let searchMatches = [];
+
+function resetSearchHighlight() {
+  if (!cy) return;
+  
+  cy.elements().style({
+    'opacity': 1,
+    'z-index': ele => ele.isNode() ? 1 : 0
+  });
+  
+  cy.nodes().style({
+    'border-color': ele => ele.data('status') === 'dead' ? '#ef4444' : '#14532d',
+    'border-width': 2
+  });
+
+    cy.edges().style({
+    'width': '',
+    'line-color': ''
+  });
+  
+}
+
+// узел
+function focusNode(node) {
+  // Сбрасываем предыдущие состояния
+  resetSearchHighlight();
+
+  // показываем узел и его связи, даже если они были скрыты фильтрами
+  node.show();
+  node.connectedEdges().show();
+
+  //  Затемняем всё, кроме целевого узла и его соседей
+  cy.elements().style('opacity', 0.15);
+  node.style('opacity', 1);
+  node.neighborhood().style('opacity', 1);
+
+  node.style({
+    'border-color': '#fbbf24',
+    'border-width': 4
+  });
+
+  // Плавный зум и центрирование
+  cy.stop(true, false);
+  cy.animate({
+    center: { eles: node },
+    zoom: 1.5,
+    duration: 600,
+    easing: 'ease-in-out-cubic'
+  });
+
+  // Открываем боковую панель с деталями
+  showNodePanel(node);
+}
+
+// связь
+function focusEdge(edge) {
+
+  resetSearchHighlight();
+
+  //показываем связь и её узлы, даже если они были скрыты фильтрами
+  edge.show();
+  edge.source().show();
+  edge.target().show();
+
+  // аналогично узлам
+  cy.elements().style('opacity', 0.15);
+  edge.style('opacity', 1);
+  edge.source().style('opacity', 1);
+  edge.target().style('opacity', 1);
+
+  edge.style({
+    'line-color': '#fbbf24',
+    'width': 4
+  });
+
+
+  cy.stop(true, false);
+  cy.animate({
+    center: { eles: edge }, // Центрируем камеру на середине связи
+    zoom: 1.5,              
+    duration: 600,
+    easing: 'ease-in-out-cubic'
+  });
+
+
+  showEdgePanel(edge);
+}
+
+function performSearch(query) {
+  if (!cy || !query) {
+    searchResults.classList.remove('open');
+    return;
+  }
+
+  const q = query.toLowerCase().trim();
+  if (q.length < 1) {
+    searchResults.classList.remove('open');
+    return;
+  }
+
+  searchMatches = [];
+  cy.nodes().forEach(node => {
+    const id = String(node.data('id')).toLowerCase();
+    const label = String(node.data('label')).toLowerCase();
+    
+    // Ищем совпадения в любом месте (как и раньше)
+    if (id.includes(q) || label.includes(q)) {
+      searchMatches.push({ 
+        node, 
+        id: node.data('id'), 
+        label: node.data('label'),
+        idLower: id,
+        labelLower: label
+      });
+    }
+  });
+
+  // сортировка
+  searchMatches.sort((a, b) => {
+    const aLabelStarts = a.labelLower.startsWith(q);
+    const bLabelStarts = b.labelLower.startsWith(q);
+    const aIdStarts = a.idLower.startsWith(q);
+    const bIdStarts = b.idLower.startsWith(q);
+    
+    const aLabelExact = a.labelLower === q;
+    const bLabelExact = b.labelLower === q;
+    const aIdExact = a.idLower === q;
+    const bIdExact = b.idLower === q;
+
+    // Точное совпадение по имени - самый высокий приоритет
+    if (aLabelExact && !bLabelExact) return -1;
+    if (!aLabelExact && bLabelExact) return 1;
+
+    // Имя начинается с введённых букв
+    if (aLabelStarts && !bLabelStarts) return -1;
+    if (!aLabelStarts && bLabelStarts) return 1;
+
+    //Точное совпадение по ID
+    if (aIdExact && !bIdExact) return -1;
+    if (!aIdExact && bIdExact) return 1;
+
+    // ID начинается с введённых букв
+    if (aIdStarts && !bIdStarts) return -1;
+    if (!aIdStarts && bIdStarts) return 1;
+
+    //Если всё остальное равно, сортируем по алфавиту
+    return a.label.localeCompare(b.label);
+  }).slice(0, 10); // Оставляем только топ 10
+
+  if (searchMatches.length === 0) {
+    searchResults.innerHTML = `<div class="graph-search-empty">Ничего не найдено</div>`;
+  } else {
+    searchResults.innerHTML = searchMatches.map((match, index) => `
+      <div class="graph-search-item" data-index="${index}">
+        <div class="graph-search-item-label">${match.label}</div>
+        <div class="graph-search-item-id">${match.id}</div>
+      </div>
+    `).join('');
+
+    searchResults.querySelectorAll('.graph-search-item').forEach(el => {
+      el.addEventListener('click', () => {
+        focusNode(searchMatches[parseInt(el.dataset.index, 10)].node);
+        closeSearch();
+      });
+    });
+  }
+
+  searchResults.classList.add('open');
+}
+
+function selectNode(index) {
+  if (index < 0 || index >= searchMatches.length) return;
+  
+  const targetNode = searchMatches[index].node;
+
+
+  focusNode(targetNode);
+  
+
+  closeSearch();
+}
+
+function closeSearch() {
+  searchResults.classList.remove('open');
+  searchInput.value = '';
+  searchClear.classList.remove('visible');
+  searchMatches = [];
+}
+
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value;
+    searchClear.classList.toggle('visible', query.length > 0);
+    performSearch(query);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeSearch();
+      resetSearchHighlight();
+      searchInput.blur();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchMatches.length > 0) {
+        selectNode(0);
+      }
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.graph-search')) {
+      searchResults.classList.remove('open');
+    }
+  });
+}
+
+if (searchClear) {
+  searchClear.addEventListener('click', () => {
+    closeSearch();
+    resetSearchHighlight();
+    searchInput.focus();
+  });
+}
 
 /* ================= TOOLBAR ================= */
 document.getElementById("btn-reset-view").addEventListener("click", ()=>{ if(cy){ cy.fit(undefined, 40); } });
