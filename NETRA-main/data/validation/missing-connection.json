@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {"id": "rtr-core01", "label": "rtr-core01", "status": "alive"},
+    {"id": "sw-agg01", "label": "sw-agg01", "status": "alive"},
+    {"id": "sw-agg02", "label": "sw-agg02", "status": "alive"},
+    {"id": "srv-web01", "label": "srv-web01", "status": "alive"},
+    {"id": "srv-web02", "label": "srv-web02", "status": "alive"},
+    {"id": "srv-db01", "label": "srv-db01", "status": "alive"}
+  ],
+  "links": [
+    {"source": "rtr-core01", "target": "sw-agg01", "load": 0.6},
+    {"source": "rtr-core01", "target": "sw-agg02", "load": 0.5},
+    {"source": "sw-agg01", "target": "srv-web01", "load": 0.4},
+    {"source": "sw-agg02", "target": "srv-web02", "load": 0.35},
+    {"source": "srv-web01", "target": "srv-db01", "load": 0.7},
+    {"source": "sw-agg01", "target": "sw-edge99", "load": 0.45},
+    {"source": "rtr-decommissioned01", "target": "sw-agg02", "load": 0.2}
+  ]
+}

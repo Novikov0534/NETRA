@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    {"id": "rtr-a", "label": "rtr-a", "status": "alive"},
+    {"id": "rtr-b", "label": "rtr-b", "status": "alive"},
+    {"id": "sw-a", "label": "sw-a", "status": "alive"},
+    {"id": "sw-b", "label": "sw-b", "status": "alive"},
+    {"id": "srv-a", "label": "srv-a", "status": "alive"}
+  ],
+  "links": [
+    {"source": "rtr-a", "target": "rtr-b", "load": 1.8},
+    {"source": "rtr-b", "target": "sw-a", "load": -0.3},
+    {"source": "sw-a", "target": "sw-b", "load": "high"},
+    {"source": "sw-b", "target": "sw-b", "load": 0.5},
+    {"source": "sw-b", "target": "srv-a", "load": 0.6}
+  ]
+}

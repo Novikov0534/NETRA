@@ -1,0 +1,175 @@
+/* ================= EMBEDDED DEMO DATA =================
+   Fallback for opening index.html directly via file:// without a local server. */
+const DEMO_DATA = {
+  loaded: {
+    "nodes": [
+      {"id": "core-fw01", "label": "core-fw01", "status": "alive"},
+      {"id": "core-sw01", "label": "core-sw01", "status": "alive"},
+      {"id": "core-sw02", "label": "core-sw02", "status": "alive"},
+      {"id": "dist-sw01", "label": "dist-sw01", "status": "alive"},
+      {"id": "dist-sw02", "label": "dist-sw02", "status": "alive"},
+      {"id": "dist-sw03", "label": "dist-sw03", "status": "alive"},
+      {"id": "acc-sw01", "label": "acc-sw01", "status": "alive"},
+      {"id": "acc-sw02", "label": "acc-sw02", "status": "alive"},
+      {"id": "acc-sw03", "label": "acc-sw03", "status": "alive"},
+      {"id": "srv-db01", "label": "srv-db01", "status": "alive"},
+      {"id": "srv-db02", "label": "srv-db02", "status": "alive"},
+      {"id": "srv-app01", "label": "srv-app01", "status": "alive"},
+      {"id": "srv-app02", "label": "srv-app02", "status": "alive"},
+      {"id": "srv-cache01", "label": "srv-cache01", "status": "alive"},
+      {"id": "mon-probe01", "label": "mon-probe01", "status": "dead"}
+    ],
+    "links": [
+      {"source": "core-fw01", "target": "core-sw01", "load": 0.91},
+      {"source": "core-fw01", "target": "core-sw02", "load": 0.87},
+      {"source": "core-sw01", "target": "dist-sw01", "load": 0.82},
+      {"source": "core-sw01", "target": "dist-sw02", "load": 0.79},
+      {"source": "core-sw02", "target": "dist-sw02", "load": 0.9},
+      {"source": "core-sw02", "target": "dist-sw03", "load": 0.95},
+      {"source": "dist-sw01", "target": "acc-sw01", "load": 0.68},
+      {"source": "dist-sw01", "target": "acc-sw02", "load": 0.74},
+      {"source": "dist-sw02", "target": "acc-sw02", "load": 0.88},
+      {"source": "dist-sw02", "target": "acc-sw03", "load": 0.63},
+      {"source": "dist-sw03", "target": "acc-sw03", "load": 0.71},
+      {"source": "acc-sw01", "target": "srv-db01", "load": 0.55},
+      {"source": "acc-sw02", "target": "srv-db02", "load": 0.93},
+      {"source": "acc-sw02", "target": "srv-app01", "load": 0.61},
+      {"source": "acc-sw03", "target": "srv-app02", "load": 0.84},
+      {"source": "acc-sw03", "target": "srv-cache01", "load": 0.77},
+      {"source": "srv-db01", "target": "srv-app01", "load": 0.66},
+      {"source": "srv-db02", "target": "srv-app02", "load": 0.89},
+      {"source": "srv-app01", "target": "srv-cache01", "load": 0.72},
+      {"source": "mon-probe01", "target": "core-sw01", "load": 0.4}
+    ]
+  },
+  deadheavy: {
+    "nodes": [
+      {"id": "gw-primary", "label": "gw-primary", "status": "alive"},
+      {"id": "gw-backup", "label": "gw-backup", "status": "dead"},
+      {"id": "sw-floor1", "label": "sw-floor1", "status": "alive"},
+      {"id": "sw-floor2", "label": "sw-floor2", "status": "dead"},
+      {"id": "sw-floor3", "label": "sw-floor3", "status": "dead"},
+      {"id": "rtr-branch01", "label": "rtr-branch01", "status": "alive"},
+      {"id": "rtr-branch02", "label": "rtr-branch02", "status": "dead"},
+      {"id": "srv-mail01", "label": "srv-mail01", "status": "alive"},
+      {"id": "srv-file01", "label": "srv-file01", "status": "dead"},
+      {"id": "srv-print01", "label": "srv-print01", "status": "dead"},
+      {"id": "ap-lobby", "label": "ap-lobby", "status": "alive"},
+      {"id": "ap-hall", "label": "ap-hall", "status": "alive"},
+      {"id": "ap-east", "label": "ap-east", "status": "dead"},
+      {"id": "cam-entry01", "label": "cam-entry01", "status": "dead"},
+      {"id": "cam-dock02", "label": "cam-dock02", "status": "dead"},
+      {"id": "probe-net01", "label": "probe-net01", "status": "alive"}
+    ],
+    "links": [
+      {"source": "gw-primary", "target": "gw-backup", "load": 0.12},
+      {"source": "gw-primary", "target": "sw-floor1", "load": 0.45},
+      {"source": "sw-floor1", "target": "sw-floor2", "load": 0.08},
+      {"source": "sw-floor1", "target": "sw-floor3", "load": 0.05},
+      {"source": "gw-primary", "target": "rtr-branch01", "load": 0.5},
+      {"source": "gw-primary", "target": "rtr-branch02", "load": 0.06},
+      {"source": "rtr-branch01", "target": "srv-mail01", "load": 0.29},
+      {"source": "rtr-branch01", "target": "srv-file01", "load": 0.04},
+      {"source": "rtr-branch02", "target": "srv-print01", "load": 0.03},
+      {"source": "sw-floor1", "target": "ap-lobby", "load": 0.35},
+      {"source": "sw-floor1", "target": "ap-hall", "load": 0.31},
+      {"source": "sw-floor3", "target": "ap-east", "load": 0.02},
+      {"source": "sw-floor2", "target": "cam-entry01", "load": 0.01},
+      {"source": "rtr-branch02", "target": "cam-dock02", "load": 0.02},
+      {"source": "gw-primary", "target": "probe-net01", "load": 0.48}
+    ]
+  },
+  sparse: {
+    "nodes": [
+      {"id": "hub-central", "label": "hub-central", "status": "alive"},
+      {"id": "node-a", "label": "node-a", "status": "alive"},
+      {"id": "node-b", "label": "node-b", "status": "alive"},
+      {"id": "node-c", "label": "node-c", "status": "alive"},
+      {"id": "node-d", "label": "node-d", "status": "alive"},
+      {"id": "node-e", "label": "node-e", "status": "alive"},
+      {"id": "node-f", "label": "node-f", "status": "alive"},
+      {"id": "node-g", "label": "node-g", "status": "alive"},
+      {"id": "satellite-01", "label": "satellite-01", "status": "dead"}
+    ],
+    "links": [
+      {"source": "hub-central", "target": "node-a", "load": 0.3},
+      {"source": "hub-central", "target": "node-b", "load": 0.42},
+      {"source": "hub-central", "target": "node-c", "load": 0.18},
+      {"source": "node-c", "target": "node-d", "load": 0.25},
+      {"source": "node-d", "target": "node-e", "load": 0.55},
+      {"source": "node-a", "target": "node-f", "load": 0.12},
+      {"source": "node-f", "target": "node-g", "load": 0.2},
+      {"source": "node-g", "target": "satellite-01", "load": 0.07}
+    ]
+  },
+  mixed: {
+    "nodes": [
+      {"id": "dc-east-core", "label": "dc-east-core", "status": "alive"},
+      {"id": "dc-west-core", "label": "dc-west-core", "status": "alive"},
+      {"id": "rtr-transit01", "label": "rtr-transit01", "status": "alive"},
+      {"id": "rtr-transit02", "label": "rtr-transit02", "status": "alive"},
+      {"id": "fw-perimeter", "label": "fw-perimeter", "status": "alive"},
+      {"id": "lb-front01", "label": "lb-front01", "status": "alive"},
+      {"id": "lb-front02", "label": "lb-front02", "status": "alive"},
+      {"id": "srv-web01", "label": "srv-web01", "status": "alive"},
+      {"id": "srv-web02", "label": "srv-web02", "status": "alive"},
+      {"id": "srv-web03", "label": "srv-web03", "status": "dead"},
+      {"id": "srv-api01", "label": "srv-api01", "status": "alive"},
+      {"id": "srv-api02", "label": "srv-api02", "status": "alive"},
+      {"id": "db-primary", "label": "db-primary", "status": "alive"},
+      {"id": "db-replica", "label": "db-replica", "status": "dead"},
+      {"id": "cache-redis01", "label": "cache-redis01", "status": "alive"},
+      {"id": "queue-mq01", "label": "queue-mq01", "status": "dead"},
+      {"id": "cdn-edge01", "label": "cdn-edge01", "status": "alive"},
+      {"id": "cdn-edge02", "label": "cdn-edge02", "status": "alive"},
+      {"id": "mon-graf01", "label": "mon-graf01", "status": "alive"},
+      {"id": "mon-prom01", "label": "mon-prom01", "status": "alive"},
+      {"id": "dns-primary", "label": "dns-primary", "status": "dead"},
+      {"id": "dns-secondary", "label": "dns-secondary", "status": "alive"}
+    ],
+    "links": [
+      {"source": "dc-east-core", "target": "dc-west-core", "load": 0.7},
+      {"source": "dc-east-core", "target": "rtr-transit01", "load": 0.55},
+      {"source": "dc-west-core", "target": "rtr-transit02", "load": 0.8},
+      {"source": "rtr-transit01", "target": "fw-perimeter", "load": 0.44},
+      {"source": "rtr-transit02", "target": "fw-perimeter", "load": 0.9},
+      {"source": "fw-perimeter", "target": "lb-front01", "load": 0.63},
+      {"source": "fw-perimeter", "target": "lb-front02", "load": 0.38},
+      {"source": "lb-front01", "target": "srv-web01", "load": 0.72},
+      {"source": "lb-front01", "target": "srv-web02", "load": 0.29},
+      {"source": "lb-front02", "target": "srv-web03", "load": 0.85},
+      {"source": "lb-front02", "target": "srv-api01", "load": 0.51},
+      {"source": "srv-web01", "target": "db-primary", "load": 0.67},
+      {"source": "srv-web02", "target": "db-primary", "load": 0.33},
+      {"source": "srv-web03", "target": "db-replica", "load": 0.95},
+      {"source": "srv-api01", "target": "srv-api02", "load": 0.58},
+      {"source": "srv-api02", "target": "db-primary", "load": 0.41},
+      {"source": "srv-api01", "target": "cache-redis01", "load": 0.76},
+      {"source": "srv-api02", "target": "queue-mq01", "load": 0.22},
+      {"source": "lb-front01", "target": "cdn-edge01", "load": 0.64},
+      {"source": "lb-front02", "target": "cdn-edge02", "load": 0.47},
+      {"source": "dc-east-core", "target": "mon-graf01", "load": 0.88},
+      {"source": "dc-west-core", "target": "mon-prom01", "load": 0.35},
+      {"source": "srv-web01", "target": "cache-redis01", "load": 0.59},
+      {"source": "srv-web02", "target": "cache-redis01", "load": 0.26},
+      {"source": "dc-east-core", "target": "dns-primary", "load": 0.73},
+      {"source": "dc-west-core", "target": "dns-secondary", "load": 0.48}
+    ]
+  },
+  critical: {
+    "nodes": [
+      {"id": "rtr-a", "label": "rtr-a", "status": "alive"},
+      {"id": "rtr-b", "label": "rtr-b", "status": "alive"},
+      {"id": "sw-a", "label": "sw-a", "status": "alive"},
+      {"id": "sw-b", "label": "sw-b", "status": "alive"},
+      {"id": "srv-a", "label": "srv-a", "status": "alive"}
+    ],
+    "links": [
+      {"source": "rtr-a", "target": "rtr-b", "load": 1.8},
+      {"source": "rtr-b", "target": "sw-a", "load": -0.3},
+      {"source": "sw-a", "target": "sw-b", "load": "high"},
+      {"source": "sw-b", "target": "sw-b", "load": 0.5},
+      {"source": "sw-b", "target": "srv-a", "load": 0.6}
+    ]
+  },
+};
