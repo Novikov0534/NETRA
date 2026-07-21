@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {"id": "hub-central", "label": "hub-central", "status": "alive"},
+    {"id": "node-a", "label": "node-a", "status": "alive"},
+    {"id": "node-b", "label": "node-b", "status": "alive"},
+    {"id": "node-c", "label": "node-c", "status": "alive"},
+    {"id": "node-d", "label": "node-d", "status": "alive"},
+    {"id": "node-e", "label": "node-e", "status": "alive"},
+    {"id": "node-f", "label": "node-f", "status": "alive"},
+    {"id": "node-g", "label": "node-g", "status": "alive"},
+    {"id": "satellite-01", "label": "satellite-01", "status": "dead"}
+  ],
+  "links": [
+    {"source": "hub-central", "target": "node-a", "load": 0.3},
+    {"source": "hub-central", "target": "node-b", "load": 0.42},
+    {"source": "hub-central", "target": "node-c", "load": 0.18},
+    {"source": "node-c", "target": "node-d", "load": 0.25},
+    {"source": "node-d", "target": "node-e", "load": 0.55},
+    {"source": "node-a", "target": "node-f", "load": 0.12},
+    {"source": "node-f", "target": "node-g", "load": 0.2},
+    {"source": "node-g", "target": "satellite-01", "load": 0.07}
+  ]
+}

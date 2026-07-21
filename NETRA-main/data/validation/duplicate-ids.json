@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    {"id": "rtr-01", "label": "rtr-01", "status": "alive"},
+    {"id": "sw-01", "label": "sw-01", "status": "alive"},
+    {"id": "sw-01", "label": "sw-01-shadow-copy", "status": "dead"},
+    {"id": "srv-01", "label": "srv-01", "status": "alive"},
+    {"id": "srv-02", "label": "srv-02", "status": "alive"},
+    {"id": "srv-02", "label": "srv-02-duplicate", "status": "alive"}
+  ],
+  "links": [
+    {"source": "rtr-01", "target": "sw-01", "load": 0.5},
+    {"source": "sw-01", "target": "srv-01", "load": 0.4},
+    {"source": "sw-01", "target": "srv-02", "load": 0.3},
+    {"source": "rtr-01", "target": "srv-02", "load": 0.2}
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {"id": "core-fw01", "label": "core-fw01", "status": "alive"},
+    {"id": "core-sw01", "label": "core-sw01", "status": "alive"},
+    {"id": "core-sw02", "label": "core-sw02", "status": "alive"},
+    {"id": "dist-sw01", "label": "dist-sw01", "status": "alive"},
+    {"id": "dist-sw02", "label": "dist-sw02", "status": "alive"},
+    {"id": "dist-sw03", "label": "dist-sw03", "status": "alive"},
+    {"id": "acc-sw01", "label": "acc-sw01", "status": "alive"},
+    {"id": "acc-sw02", "label": "acc-sw02", "status": "alive"},
+    {"id": "acc-sw03", "label": "acc-sw03", "status": "alive"},
+    {"id": "srv-db01", "label": "srv-db01", "status": "alive"},
+    {"id": "srv-db02", "label": "srv-db02", "status": "alive"},
+    {"id": "srv-app01", "label": "srv-app01", "status": "alive"},
+    {"id": "srv-app02", "label": "srv-app02", "status": "alive"},
+    {"id": "srv-cache01", "label": "srv-cache01", "status": "alive"},
+    {"id": "mon-probe01", "label": "mon-probe01", "status": "dead"}
+  ],
+  "links": [
+    {"source": "core-fw01", "target": "core-sw01", "load": 0.91},
+    {"source": "core-fw01", "target": "core-sw02", "load": 0.87},
+    {"source": "core-sw01", "target": "dist-sw01", "load": 0.82},
+    {"source": "core-sw01", "target": "dist-sw02", "load": 0.79},
+    {"source": "core-sw02", "target": "dist-sw02", "load": 0.9},
+    {"source": "core-sw02", "target": "dist-sw03", "load": 0.95},
+    {"source": "dist-sw01", "target": "acc-sw01", "load": 0.68},
+    {"source": "dist-sw01", "target": "acc-sw02", "load": 0.74},
+    {"source": "dist-sw02", "target": "acc-sw02", "load": 0.88},
+    {"source": "dist-sw02", "target": "acc-sw03", "load": 0.63},
+    {"source": "dist-sw03", "target": "acc-sw03", "load": 0.71},
+    {"source": "acc-sw01", "target": "srv-db01", "load": 0.55},
+    {"source": "acc-sw02", "target": "srv-db02", "load": 0.93},
+    {"source": "acc-sw02", "target": "srv-app01", "load": 0.61},
+    {"source": "acc-sw03", "target": "srv-app02", "load": 0.84},
+    {"source": "acc-sw03", "target": "srv-cache01", "load": 0.77},
+    {"source": "srv-db01", "target": "srv-app01", "load": 0.66},
+    {"source": "srv-db02", "target": "srv-app02", "load": 0.89},
+    {"source": "srv-app01", "target": "srv-cache01", "load": 0.72},
+    {"source": "mon-probe01", "target": "core-sw01", "load": 0.4}
+  ]
+}

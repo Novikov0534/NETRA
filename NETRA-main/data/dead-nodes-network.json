@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {"id": "gw-primary", "label": "gw-primary", "status": "alive"},
+    {"id": "gw-backup", "label": "gw-backup", "status": "dead"},
+    {"id": "sw-floor1", "label": "sw-floor1", "status": "alive"},
+    {"id": "sw-floor2", "label": "sw-floor2", "status": "dead"},
+    {"id": "sw-floor3", "label": "sw-floor3", "status": "dead"},
+    {"id": "rtr-branch01", "label": "rtr-branch01", "status": "alive"},
+    {"id": "rtr-branch02", "label": "rtr-branch02", "status": "dead"},
+    {"id": "srv-mail01", "label": "srv-mail01", "status": "alive"},
+    {"id": "srv-file01", "label": "srv-file01", "status": "dead"},
+    {"id": "srv-print01", "label": "srv-print01", "status": "dead"},
+    {"id": "ap-lobby", "label": "ap-lobby", "status": "alive"},
+    {"id": "ap-hall", "label": "ap-hall", "status": "alive"},
+    {"id": "ap-east", "label": "ap-east", "status": "dead"},
+    {"id": "cam-entry01", "label": "cam-entry01", "status": "dead"},
+    {"id": "cam-dock02", "label": "cam-dock02", "status": "dead"},
+    {"id": "probe-net01", "label": "probe-net01", "status": "alive"}
+  ],
+  "links": [
+    {"source": "gw-primary", "target": "gw-backup", "load": 0.12},
+    {"source": "gw-primary", "target": "sw-floor1", "load": 0.45},
+    {"source": "sw-floor1", "target": "sw-floor2", "load": 0.08},
+    {"source": "sw-floor1", "target": "sw-floor3", "load": 0.05},
+    {"source": "gw-primary", "target": "rtr-branch01", "load": 0.5},
+    {"source": "gw-primary", "target": "rtr-branch02", "load": 0.06},
+    {"source": "rtr-branch01", "target": "srv-mail01", "load": 0.29},
+    {"source": "rtr-branch01", "target": "srv-file01", "load": 0.04},
+    {"source": "rtr-branch02", "target": "srv-print01", "load": 0.03},
+    {"source": "sw-floor1", "target": "ap-lobby", "load": 0.35},
+    {"source": "sw-floor1", "target": "ap-hall", "load": 0.31},
+    {"source": "sw-floor3", "target": "ap-east", "load": 0.02},
+    {"source": "sw-floor2", "target": "cam-entry01", "load": 0.01},
+    {"source": "rtr-branch02", "target": "cam-dock02", "load": 0.02},
+    {"source": "gw-primary", "target": "probe-net01", "load": 0.48}
+  ]
+}

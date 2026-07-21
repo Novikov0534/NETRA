@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NETRA — Network Topology Engine</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<script src="libs/cytoscape.min.js"></script>
+<link rel="stylesheet" href="css/style.css?v=7">
+</head>
+<body>
+
+<div class="grid-field"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="dot"></span>NETRA<span class="full" style="color:var(--text);font-weight:400;margin-left:6px;">// noc</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="home">Главная</button>
+    <button class="tab-btn" data-view="viz">Визуализация</button>
+    <button class="tab-btn" data-view="stats">Статистика</button>
+  </div>
+  <div class="nav-status"><span class="pulse-dot"></span><span id="nav-status-text">СИСТЕМА АКТИВНА</span></div>
+</nav>
+
+<!-- ============ HOME ============ -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <video autoplay muted loop playsinline id="hero-video" src="assets/netra-hero.mp4"></video>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Topology Engine · Live Monitoring</div>
+      <h1 class="hero-title">NETRA</h1>
+      <p class="hero-sub">NETRA превращает сырой JSON вашей сети в живую карту узлов и связей. Загрузите свой топологический срез или запустите один из демо-сценариев, чтобы увидеть нагрузку и отказы в реальном времени.</p>
+      <div class="hero-actions">
+        <label class="file-label">
+          <input type="file" id="file-input" accept="application/json">
+          <span class="btn-primary" id="upload-trigger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M5 21h14"/></svg>
+            Загрузить JSON
+          </span>
+        </label>
+        <button class="btn-ghost" id="scroll-demos">Демо-примеры ↓</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section home-workspace" id="home-workspace">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Рабочая область</div>
+        <h2 class="section-title">Быстрый старт</h2>
+      </div>
+      <div class="quick-actions">
+        <button class="btn-primary" id="quick-upload-trigger">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M5 21h14"/></svg>
+          Загрузить JSON
+        </button>
+        <button class="btn-ghost" id="clear-recent">Очистить историю</button>
+      </div>
+    </div>
+    <div class="workspace-grid">
+      <section class="workspace-panel">
+        <div class="workspace-panel-title">Открытые визуализации</div>
+        <div class="dataset-list" id="open-dataset-list"></div>
+      </section>
+      <section class="workspace-panel">
+        <div class="workspace-panel-title">Последние JSON</div>
+        <div class="dataset-list" id="recent-dataset-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="section" id="demos-section">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Демо-наборы</div>
+        <h2 class="section-title">Выберите готовую топологию</h2>
+      </div>
+      <div class="section-note">Каждый набор — отдельный снимок сети: разная плотность связей, разная доля отказов.</div>
+    </div>
+    <div class="demo-grid">
+      <button class="demo-card" data-demo="loaded">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="10" x2="50" y2="10"/><line x1="10" y1="17" x2="42" y2="17"/><line x1="10" y1="24" x2="50" y2="24"/></svg>
+        <div><div class="demo-name">Нагруженная сеть</div><div class="demo-meta">15 УЗЛОВ · ВЫСОКАЯ НАГРУЗКА</div></div>
+      </button>
+      <button class="demo-card" data-demo="deadheavy">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="10" y1="12" x2="30" y2="12"/><line x1="34" y1="12" x2="50" y2="12"/><line x1="10" y1="22" x2="24" y2="22"/><line x1="30" y1="22" x2="50" y2="22"/></svg>
+        <div><div class="demo-name">Много мёртвых узлов</div><div class="demo-meta">16 УЗЛОВ · 56% ОТКАЗОВ</div></div>
+      </button>
+      <button class="demo-card" data-demo="sparse">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="12" y1="17" x2="48" y2="10"/><line x1="12" y1="17" x2="48" y2="24"/></svg>
+        <div><div class="demo-name">Разреженный граф</div><div class="demo-meta">9 УЗЛОВ · МИНИМУМ СВЯЗЕЙ</div></div>
+      </button>
+      <button class="demo-card" data-demo="mixed">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="8" y1="9" x2="30" y2="17"/><line x1="30" y1="17" x2="52" y2="9"/><line x1="30" y1="17" x2="18" y2="26"/><line x1="30" y1="17" x2="44" y2="26"/></svg>
+        <div><div class="demo-name">Смешанная топология</div><div class="demo-meta">22 УЗЛА · РАЗНОРОДНАЯ НАГРУЗКА</div></div>
+      </button>
+      <button class="demo-card" data-demo="critical">
+        <svg class="demo-glyph" width="60" height="34" viewBox="0 0 60 34"><rect x="1" y="1" width="58" height="32" rx="4"/><line x1="12" y1="10" x2="48" y2="24"/><line x1="12" y1="24" x2="48" y2="10"/><line x1="30" y1="8" x2="30" y2="26"/></svg>
+        <div><div class="demo-name">Критическая сеть</div><div class="demo-meta">5 УЗЛОВ · ОШИБКИ ДАННЫХ</div></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span>NETRA © 2026 · Визуализация сетевой топологии</span>
+    <span id="home-format-hint">Формат: {nodes:[{id,label,status}], links:[{source,target,load}]}</span>
+  </div>
+</section>
+
+<!-- ============ VISUALIZATION ============ -->
+<section class="view" id="view-viz">
+  <div class="dataset-tabs" id="dataset-tabs"></div>
+  <div class="issues-banner" id="issues-banner">
+    <span class="ib-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+    </span>
+    <div class="ib-body">
+      <div class="ib-title" id="issues-banner-title">Обнаружены проблемы в данных</div>
+      <ul id="issues-banner-list"></ul>
+    </div>
+    <button class="ib-close" id="issues-banner-close">✕</button>
+  </div>
+  <div class="viz-stage">
+    <div id="cy"></div>
+    <div class="legend">
+      <h4>Нагрузка связей</h4>
+      <div class="legend-scale"></div>
+      <div class="legend-scale-labels"><span>0%</span><span>100%</span></div>
+      <h4 style="margin-top:16px;">Статус узла</h4>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--alive);"></span>Активен</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--dead);"></span>Недоступен</div>
+      <div class="legend-row"><span class="legend-line-swatch"></span>Связь между недоступными</div>
+    </div>
+    
+    <div class="side-panel" id="side-panel">
+      <button class="side-panel-close" id="panel-close">✕</button>
+      <div id="panel-body"></div>
+    </div>
+
+    <!-- поиска размещено после боковой панели -->
+    <div class="graph-search" id="graph-search">
+      <div class="graph-search-wrapper">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="graph-search-input" class="graph-search-input" placeholder="Поиск узла (ID или имя)..." autocomplete="off">
+        <button class="search-clear" id="graph-search-clear" title="Очистить">✕</button>
+      </div>
+      <div class="graph-search-results" id="graph-search-results"></div>
+    </div>
+  </div>
+  <div class="viz-toolbar">
+    <div class="viz-toolbar-left">
+      <span>НАБОР: <b id="viz-dataset-name">—</b></span>
+      <span>УЗЛОВ: <b id="viz-node-count">0</b></span>
+      <span>СВЯЗЕЙ: <b id="viz-edge-count">0</b></span>
+    </div>
+    <div class="viz-toolbar-right">
+      <!--ДОБАВЛЕНО: Выпадающая панель фильтров -->
+      <div class="filter-dropdown">
+        <button class="tool-btn" id="filter-toggle-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Фильтры
+        </button>
+        <div class="filter-panel" id="filter-panel">
+          <div class="filter-header">
+            <span>Параметры</span>
+            <button class="filter-reset-btn" id="filter-reset">Сбросить</button>
+          </div>
+          <div class="filter-group">
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-hide-dead">
+              <span class="checkmark"></span>
+              Скрыть мёртвые узлы
+            </label>
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-hide-isolated">
+              <span class="checkmark"></span>
+              Скрыть изолированные узлы
+            </label>
+          </div>
+          <div class="filter-group">
+            <div class="filter-label-row">
+              <span>Мин. нагрузка связи</span>
+              <span class="filter-value" id="filter-min-load-val">0%</span>
+            </div>
+            <input type="range" id="filter-min-load" min="0" max="100" value="0" step="5" class="filter-slider">
+          </div>
+        </div>
+      </div>
+
+      <button class="tool-btn" id="btn-reset-view">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        Сбросить вид
+      </button>
+      <button class="tool-btn" id="btn-export-png">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Экспорт PNG
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section class="view" id="view-stats">
+  <div class="dataset-tabs stats-dataset-tabs" id="stats-dataset-tabs"></div>
+  <div class="stats-wrap">
+    <div class="section-head">
+      <div>
+        <div class="section-label">Сводка</div>
+        <h2 class="section-title">Состояние сети</h2>
+      </div>
+      <div class="section-note">Показатели пересчитываются при загрузке нового набора данных.</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Всего узлов</div><div class="value" id="kpi-nodes">0</div></div>
+      <div class="kpi"><div class="label">Всего связей</div><div class="value" id="kpi-links">0</div></div>
+      <div class="kpi"><div class="label">Мёртвые узлы</div><div class="value warn" id="kpi-dead">0%</div><div class="sub" id="kpi-dead-count">0 узлов</div></div>
+      <div class="kpi"><div class="label">Средняя нагрузка</div><div class="value" id="kpi-load">0%</div></div>
+    </div>
+    <div class="section-label" style="margin-bottom:14px;">Таблица отказов</div>
+    <table class="dead-table">
+      <thead><tr><th>ID</th><th>Метка</th><th>Статус</th></tr></thead>
+      <tbody id="dead-table-body"><tr><td class="empty-row" colspan="3">Нет данных — загрузите набор на вкладке «Главная»</td></tr></tbody>
+    </table>
+
+    <div class="issues-section empty" id="issues-section">
+      <h4 id="issues-section-title">Проверка целостности данных</h4>
+      <div id="issues-section-body" style="font-size:13px;color:var(--text);">Загрузите набор, чтобы увидеть результат проверки.</div>
+    </div>
+  </div>
+</section>
+
+<script src="js/validators.js?v=8"></script>
+<script src="js/graph.js?v=8"></script>
+<script src="js/stats.js?v=8"></script>
+<script src="js/filters.js?v=8"></script>
+<script src="js/demo-data.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
+</body>
+</html>
