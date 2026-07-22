@@ -210,13 +210,41 @@
       </div>
       <div class="section-note">Показатели пересчитываются при загрузке нового набора данных.</div>
     </div>
+
+    <!-- KPI -->
     <div class="kpi-row">
       <div class="kpi"><div class="label">Всего узлов</div><div class="value" id="kpi-nodes">0</div></div>
       <div class="kpi"><div class="label">Всего связей</div><div class="value" id="kpi-links">0</div></div>
       <div class="kpi"><div class="label">Мёртвые узлы</div><div class="value warn" id="kpi-dead">0%</div><div class="sub" id="kpi-dead-count">0 узлов</div></div>
       <div class="kpi"><div class="label">Средняя нагрузка</div><div class="value" id="kpi-load">0%</div></div>
     </div>
-    <div class="section-label" style="margin-bottom:14px;">Таблица отказов</div>
+
+    <!-- Визуализации -->
+    <div class="stats-grid">
+      <div class="stats-card">
+        <h4 class="stats-card-title">Статусы узлов</h4>
+        <div id="stats-status-donut" class="stats-donut-container"></div>
+      </div>
+      <div class="stats-card">
+        <h4 class="stats-card-title">Распределение нагрузки</h4>
+        <div id="stats-load-histogram" class="stats-histogram-container"></div>
+      </div>
+      <div class="stats-card">
+        <h4 class="stats-card-title">Топ-5 нагруженных связей</h4>
+        <div id="stats-top-links" class="stats-list-container"></div>
+      </div>
+      <div class="stats-card">
+        <h4 class="stats-card-title">Топ-5 узлов по связям</h4>
+        <div id="stats-top-nodes" class="stats-list-container"></div>
+      </div>
+    </div>
+
+    <!-- Сводка по проблемам -->
+    <div class="section-label" style="margin-bottom:14px;">Проблемы и аномалии</div>
+    <div id="stats-issues-summary" class="issues-summary-grid"></div>
+
+    <!-- Таблица мёртвых узлов -->
+    <div class="section-label" style="margin-bottom:14px; margin-top:32px;">Таблица отказов</div>
     <table class="dead-table">
       <thead><tr><th>ID</th><th>Метка</th><th>Статус</th></tr></thead>
       <tbody id="dead-table-body"><tr><td class="empty-row" colspan="3">Нет данных — загрузите набор на вкладке «Главная»</td></tr></tbody>

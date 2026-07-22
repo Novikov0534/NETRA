@@ -248,16 +248,18 @@ function clearActiveDataset(){
   currentData = null;
   currentName = "—";
   currentIssues = [];
+  
+  // Очищаем только заголовок и счетчики визуализации
   document.getElementById("nav-status-text").textContent = "СИСТЕМА АКТИВНА";
   document.getElementById("viz-dataset-name").textContent = "—";
   document.getElementById("viz-node-count").textContent = "0";
   document.getElementById("viz-edge-count").textContent = "0";
-  document.getElementById("kpi-nodes").textContent = "0";
-  document.getElementById("kpi-links").textContent = "0";
-  document.getElementById("kpi-dead").textContent = "0%";
-  document.getElementById("kpi-dead-count").textContent = "0 узлов";
-  document.getElementById("kpi-load").textContent = "0%";
-  document.getElementById("dead-table-body").innerHTML = `<tr><td class="empty-row" colspan="3">Нет данных — загрузите набор на вкладке «Главная»</td></tr>`;
+  
+  // Эта функция очистит KPI, таблицу и поставит SVG-заглушки
+  if (typeof clearStatsDashboard === 'function') {
+    clearStatsDashboard();
+  }
+
   if(cy){ cy.destroy(); cy = null; }
   if(deadPulseRAF) cancelAnimationFrame(deadPulseRAF);
   closePanel();
@@ -407,4 +409,10 @@ function escapeAttr(value){
   return escapeHTML(value).replace(/`/g, "&#096;");
 }
 
+// Отрисовываем списки датасетов
 renderDatasetLists();
+
+// показываем заглушки в статистике при первом запуске
+if (typeof clearStatsDashboard === 'function') {
+  clearStatsDashboard();
+}
