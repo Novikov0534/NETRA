@@ -1,5 +1,5 @@
-/* ================= EMBEDDED DEMO DATA =================
-   Fallback for opening index.html directly via file:// without a local server. */
+/* Встроенные демонстрационные данные
+   Механизм резервного доступа для открытия index.html напрямую через протокол file:// без локального сервера */
 const DEMO_DATA = {
   loaded: {
     "nodes": [

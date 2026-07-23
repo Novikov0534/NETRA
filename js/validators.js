@@ -1,4 +1,4 @@
-/* ================= VALIDATION ================= */
+/* ВАЛИДАЦИЯ */
 function validateDataset(data){
   const issues = [];
   const nodes = Array.isArray(data.nodes) ? data.nodes : [];

@@ -23,7 +23,7 @@
     a{color:inherit;}
     button{font-family:var(--sans);cursor:pointer;}
 
-    /* ---------- background texture: quiet topology grid ---------- */
+    /* фоновая текстура: сдержанная топологическая сетка */
     .grid-field{
       position:fixed; inset:0; z-index:0; pointer-events:none;
       background-image:
@@ -34,7 +34,7 @@
       opacity:.5;
     }
 
-    /* ---------- top nav ---------- */
+    /* верхняя навигация */
     .topnav{
       position:fixed; top:0; left:0; right:0; z-index:100;
       display:grid; grid-template-columns:minmax(180px, 1fr) auto minmax(180px, 1fr);
@@ -84,7 +84,7 @@
     #nav-status-text{display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
     @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
 
-    /* ---------- views ---------- */
+    /* просмотры */
     .view{
       position:relative; z-index:1; min-height:100vh; padding-top:64px;
       opacity:0; transform:translateY(8px); pointer-events:none; position:absolute; inset:0;
@@ -92,7 +92,7 @@
     }
     .view.active{opacity:1; transform:translateY(0); pointer-events:auto; position:relative;}
 
-    /* ============ HOME ============ */
+    /* Главная страница */
     #view-home{padding-top:0;}
     body.returning-user #view-home{padding-top:64px;}
     body.returning-user .hero{display:none;}
@@ -139,7 +139,7 @@
     }
     .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
 
-    /* below-fold sections */
+    /* разделы, расположенные ниже видимой части страницы */
     .section{padding:76px 6vw; border-bottom:1px solid var(--line); position:relative; z-index:1;}
     .section-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:38px; gap:24px; flex-wrap:wrap;}
     .section-label{
@@ -233,7 +233,7 @@
       font-family:var(--mono); font-size:11.5px; color:var(--text); flex-wrap:wrap; gap:10px;
     }
 
-    /* ============ VISUALIZATION ============ */
+    /* ВИЗУАЛИЗАЦИЯ */
     #view-viz{display:flex; flex-direction:column; height:100vh;}
     #view-stats{display:flex; flex-direction:column;}
     .viz-toolbar{
@@ -354,7 +354,7 @@
     .status-chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;}
     .status-chip .d{width:8px;height:8px;border-radius:50%;}
 
-    /* ============ STATS ============ */
+    /* СТАТИСТИКА */
     .stats-wrap{padding:44px 6vw 80px; flex:1;}
     .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:48px;}
     .kpi{background:var(--bg-raised); padding:28px 26px;}

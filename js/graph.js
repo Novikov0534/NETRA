@@ -1,4 +1,4 @@
-/* ================= GRAPH RENDERING ================= */
+/* Отрисовка графа */
 function loadColor(load){
   const stops = [
     {t:0, c:[22,35,59]},
@@ -167,7 +167,7 @@ function startDeadPulse() {
   deadPulseRAF = requestAnimationFrame(tick);
 }
 
-/* ================= SIDE PANEL ================= */
+/* Боковая панель */
 const panel = document.getElementById("side-panel");
 function statusChip(status){
   const map = {
@@ -228,7 +228,7 @@ function closePanel(){
 }
 document.getElementById("panel-close").addEventListener("click", closePanel);
 
-/* ================= UNIVERSAL FOCUS & SEARCH ================= */
+/* Универсальный фокус и поиск */
 const searchInput = document.getElementById('graph-search-input');
 const searchResults = document.getElementById('graph-search-results');
 const searchClear = document.getElementById('graph-search-clear');
@@ -457,7 +457,7 @@ if (searchClear) {
   });
 }
 
-/* ================= TOOLBAR ================= */
+/* ПАНЕЛЬ ИНСТРУМЕНТОВ */
 document.getElementById("btn-reset-view").addEventListener("click", ()=>{ if(cy){ cy.fit(undefined, 40); } });
 document.getElementById("btn-export-png").addEventListener("click", ()=>{
   if(!cy) return;

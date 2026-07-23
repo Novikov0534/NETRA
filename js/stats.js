@@ -1,4 +1,4 @@
-/* ================= STATS ================= */
+/* СТАТИСТИКА */
 function renderStats(data){
   const total = data.nodes.length;
   const dead = data.nodes.filter(n=>n.status==="dead");

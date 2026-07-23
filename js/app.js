@@ -1,4 +1,4 @@
-/* ================= DEMO DATA ================= */
+/* Демонстрационные данные */
 const DEMOS = {
   loaded: { name:"Нагруженная сеть", file:"data/high-load-network.json" },
   deadheavy: { name:"Много мёртвых узлов", file:"data/dead-nodes-network.json" },
@@ -7,7 +7,7 @@ const DEMOS = {
   critical: { name:"Критическая сеть", file:"data/critical-network.json" },
 };
 
-/* ================= STATE ================= */
+/* СОСТОЯНИЕ */
 const STORAGE_KEYS = {
   visited: "netra:visited",
   recent: "netra:recent-datasets",
@@ -34,12 +34,12 @@ const recentDatasetList = document.getElementById("recent-dataset-list");
 const datasetTabs = document.getElementById("dataset-tabs");
 const statsDatasetTabs = document.getElementById("stats-dataset-tabs");
 
-/* ================= FIRST VISIT ================= */
+/* ПЕРВЫЙ ВИЗИТ */
 const hasVisited = localStorage.getItem(STORAGE_KEYS.visited) === "1";
 document.body.classList.toggle("returning-user", hasVisited);
 localStorage.setItem(STORAGE_KEYS.visited, "1");
 
-/* ================= TAB SWITCHING ================= */
+/* Переключение вкладок */
 document.querySelectorAll(".tab-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>setView(btn.dataset.view));
 });
@@ -64,7 +64,7 @@ document.getElementById("clear-recent").addEventListener("click", ()=>{
   renderDatasetLists();
 });
 
-/* ================= LOAD DATA ================= */
+/* ЗАГРУЗКА ДАННЫХ */
 document.querySelectorAll(".demo-card").forEach(card=>{
   card.addEventListener("click", async ()=>{
     const key = card.dataset.demo;
@@ -266,7 +266,7 @@ function clearActiveDataset(){
   renderDatasetLists();
 }
 
-/* ================= DATASET LISTS ================= */
+/* Списки наборов данных */
 function renderDatasetLists(){
   renderOpenedDatasets();
   renderRecentDatasets();
@@ -377,7 +377,7 @@ function saveRecentDataset(dataset){
       .slice(0, MAX_RECENT_DATASETS - 1);
     localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify([record, ...recent]));
   }catch(err){
-    // localStorage can be unavailable or full; the active workspace still works.
+    // localStorage может быть недоступен или переполнен; активная рабочая область продолжает работать
   }
 }
 
