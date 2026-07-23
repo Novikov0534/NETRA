@@ -1,4 +1,4 @@
-/* СТАТИСТИКА */
+// stats
 
 // очистка дашборда при отсутствии данных
 function clearStatsDashboard() {
@@ -84,25 +84,37 @@ function renderStats(data) {
   }
 
   // Визуализации
-  renderStatusDonut(data.nodes);
+  renderStatusDonut(data.nodes, data.links);
   renderLoadHistogram(data.links);
   renderTopLinks(data);
   renderTopNodes(data);
   renderIssuesSummary(data);
 }
 
-// Круговая диаграмма статусов
-function renderStatusDonut(nodes) {
+// Круговая диаграмма статусов (с учетом призрачных узлов из связей)
+function renderStatusDonut(nodes, links) {
   const container = document.getElementById("stats-status-donut");
   if (!container) return;
+
+  const nodeIds = new Set(nodes.map(n => n.id));
+  
+  // Считаем узлы, на которые есть ссылки, но которых нет в списке nodes
+  const ghostNodes = new Set();
+  if (links) {
+    links.forEach(l => {
+      if (!nodeIds.has(l.source)) ghostNodes.add(l.source);
+      if (!nodeIds.has(l.target)) ghostNodes.add(l.target);
+    });
+  }
 
   const counts = {
     alive: nodes.filter(n => n.status === "alive").length,
     dead: nodes.filter(n => n.status === "dead").length,
     unknown: nodes.filter(n => n.status === "unknown").length,
-    missing: nodes.filter(n => n.status === "missing").length
+    missing: nodes.filter(n => n.status === "missing").length + ghostNodes.size
   };
-  const total = nodes.length || 1;
+  
+  const total = nodes.length + ghostNodes.size || 1;
 
   const segments = [
     { label: "Активны", count: counts.alive, color: "#22c55e" },
@@ -239,42 +251,82 @@ function renderIssuesSummary(data) {
   const container = document.getElementById("stats-issues-summary");
   if (!container) return;
 
-  const broken = data.links.filter(l => {
-    const load = typeof l.load === "number" && !isNaN(l.load) ? l.load : 0;
-    return !load || load < 0 || load > 1;
-  }).length;
+  // Вспомогательная функция, которая использует условия, что и валидатор
+  function countDashboardIssues(data) {
+    const nodes = Array.isArray(data.nodes) ? data.nodes : [];
+    const links = Array.isArray(data.links) ? data.links : [];
+    const nodeIds = new Set(nodes.map(n => n.id));
 
-  const deadLinks = data.links.filter(l => {
-    const src = data.nodes.find(n => n.id === l.source);
-    const tgt = data.nodes.find(n => n.id === l.target);
-    return src?.status === "dead" && tgt?.status === "dead";
-  }).length;
+    let problematicLinks = 0;
+    let missingTargets = 0;
 
-  const missing = data.nodes.filter(n => n.status === "missing").length;
-  const dead = data.nodes.filter(n => n.status === "dead").length;
+    links.forEach(l => {
+      let isProblematic = false;
+
+      // 1. Обрыв связи как в валидаторе
+      if (!nodeIds.has(l.source)) {
+        isProblematic = true;
+        missingTargets++;
+      }
+      if (!nodeIds.has(l.target)) {
+        isProblematic = true;
+        missingTargets++;
+      }
+
+      // 2. Петля  как в валидаторе
+      if (l.source === l.target && l.source !== undefined) {
+        isProblematic = true;
+      }
+
+      // 3. Некорректная нагрузка как в валидаторе
+      if (typeof l.load !== "number" || isNaN(l.load)) {
+        isProblematic = true;
+      } else if (l.load < 0 || l.load > 1) {
+        isProblematic = true;
+      }
+
+      if (isProblematic) {
+        problematicLinks++;
+      }
+    });
+
+    const deadNodes = nodes.filter(n => n.status === "dead").length;
+    // Не найдены = узлы со статусом missing + цели связей, которых нет в списке узлов
+    const missingNodes = nodes.filter(n => n.status === "missing").length + missingTargets;
+    
+    const deadLinks = links.filter(l => {
+      const src = nodes.find(n => n.id === l.source);
+      const tgt = nodes.find(n => n.id === l.target);
+      return src?.status === "dead" && tgt?.status === "dead";
+    }).length;
+
+    return { problematicLinks, missingNodes, deadNodes, deadLinks };
+  }
+
+  const counts = countDashboardIssues(data);
 
   const items = [
     { 
       label: "Мёртвые узлы", 
-      count: dead, 
+      count: counts.deadNodes, 
       color: "#ef4444", 
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>` 
     },
     { 
-      label: "Не найдены", 
-      count: missing, 
+      label: "Не найдены / Обрывы", 
+      count: counts.missingNodes, 
       color: "#fbbf24", 
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>` 
     },
     { 
       label: "Проблемные связи", 
-      count: broken, 
+      count: counts.problematicLinks, 
       color: "#f59e0b", 
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>` 
     },
     { 
       label: "Мёртвые связи", 
-      count: deadLinks, 
+      count: counts.deadLinks, 
       color: "#ef4444", 
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>` 
     }
