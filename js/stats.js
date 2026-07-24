@@ -1,5 +1,9 @@
 // stats
 
+function normalizeStatsId(value) {
+  return value===undefined || value===null || value==="" ? null : String(value);
+}
+
 // очистка дашборда при отсутствии данных
 function clearStatsDashboard() {
   // Сброс KPI
@@ -52,15 +56,22 @@ function clearStatsDashboard() {
 }
 
 function renderStats(data) {
-  if (!data || !data.nodes || data.nodes.length === 0) {
+  const nodes = Array.isArray(data && data.nodes)
+    ? data.nodes.filter(item=>item && typeof item === "object")
+    : [];
+  const links = Array.isArray(data && data.links)
+    ? data.links.filter(item=>item && typeof item === "object")
+    : [];
+  if (nodes.length === 0 && links.length === 0) {
     clearStatsDashboard();
     return;
   }
 
-  const total = data.nodes.length;
-  const dead = data.nodes.filter(n => n.status === "dead");
+  const safeData = { ...data, nodes, links };
+  const total = nodes.length;
+  const dead = nodes.filter(n => n.status === "dead");
   const deadPct = total ? Math.round((dead.length / total) * 1000) / 10 : 0;
-  const normalizedLoads = data.links.map(l => {
+  const normalizedLoads = links.map(l => {
     const load = typeof l.load === "number" && !isNaN(l.load) ? l.load : 0;
     return Math.max(0, Math.min(1, load));
   });
@@ -68,7 +79,7 @@ function renderStats(data) {
 
   // KPI
   document.getElementById("kpi-nodes").textContent = total;
-  document.getElementById("kpi-links").textContent = data.links.length;
+  document.getElementById("kpi-links").textContent = links.length;
   document.getElementById("kpi-dead").textContent = deadPct + "%";
   document.getElementById("kpi-dead-count").textContent = dead.length + " узлов";
   document.getElementById("kpi-load").textContent = avgLoad + "%";
@@ -79,16 +90,16 @@ function renderStats(data) {
     body.innerHTML = `<tr><td class="empty-row" colspan="3">Мёртвых узлов не обнаружено</td></tr>`;
   } else {
     body.innerHTML = dead.map(n => `
-      <tr><td>${n.id}</td><td>${n.label}</td><td>${statusChip(n.status)}</td></tr>
+      <tr><td>${escapeHTML(n.id)}</td><td>${escapeHTML(n.label || "—")}</td><td>${statusChip(n.status)}</td></tr>
     `).join("");
   }
 
   // Визуализации
-  renderStatusDonut(data.nodes, data.links);
-  renderLoadHistogram(data.links);
-  renderTopLinks(data);
-  renderTopNodes(data);
-  renderIssuesSummary(data);
+  renderStatusDonut(nodes, links);
+  renderLoadHistogram(links);
+  renderTopLinks(safeData);
+  renderTopNodes(safeData);
+  renderIssuesSummary(safeData);
 }
 
 // Круговая диаграмма статусов (с учетом призрачных узлов из связей)
@@ -96,21 +107,23 @@ function renderStatusDonut(nodes, links) {
   const container = document.getElementById("stats-status-donut");
   if (!container) return;
 
-  const nodeIds = new Set(nodes.map(n => n.id));
+  const nodeIds = new Set(nodes.map(n => normalizeStatsId(n.id)).filter(Boolean));
   
   // Считаем узлы, на которые есть ссылки, но которых нет в списке nodes
   const ghostNodes = new Set();
   if (links) {
     links.forEach(l => {
-      if (!nodeIds.has(l.source)) ghostNodes.add(l.source);
-      if (!nodeIds.has(l.target)) ghostNodes.add(l.target);
+      const sourceId = normalizeStatsId(l.source);
+      const targetId = normalizeStatsId(l.target);
+      if (sourceId && !nodeIds.has(sourceId)) ghostNodes.add(sourceId);
+      if (targetId && !nodeIds.has(targetId)) ghostNodes.add(targetId);
     });
   }
 
   const counts = {
     alive: nodes.filter(n => n.status === "alive").length,
     dead: nodes.filter(n => n.status === "dead").length,
-    unknown: nodes.filter(n => n.status === "unknown").length,
+    unknown: nodes.filter(n => !["alive", "dead", "missing"].includes(n.status)).length,
     missing: nodes.filter(n => n.status === "missing").length + ghostNodes.size
   };
   
@@ -196,12 +209,14 @@ function renderTopLinks(data) {
 
   container.innerHTML = sorted.map(l => {
     const pct = Math.round(l.load * 100);
-    const color = l.load > 0.8 ? "#ef4444" : l.load > 0.5 ? "#f59e0b" : "#3b82f6";
+    const normalizedLoad = Math.max(0, Math.min(1, l.load));
+    const barWidth = Math.round(normalizedLoad * 100);
+    const color = normalizedLoad > 0.8 ? "#ef4444" : normalizedLoad > 0.5 ? "#f59e0b" : "#3b82f6";
     return `
       <div class="top-link-row">
-        <div class="top-link-name">${l.source} → ${l.target}</div>
+        <div class="top-link-name">${escapeHTML(l.source ?? "—")} → ${escapeHTML(l.target ?? "—")}</div>
         <div class="top-link-bar">
-          <div class="top-link-fill" style="width:${pct}%; background:${color}"></div>
+          <div class="top-link-fill" style="width:${barWidth}%; background:${color}"></div>
         </div>
         <div class="top-link-value" style="color:${color}">${pct}%</div>
       </div>
@@ -216,8 +231,10 @@ function renderTopNodes(data) {
 
   const degreeMap = new Map();
   data.links.forEach(l => {
-    degreeMap.set(l.source, (degreeMap.get(l.source) || 0) + 1);
-    degreeMap.set(l.target, (degreeMap.get(l.target) || 0) + 1);
+    const sourceId = normalizeStatsId(l.source);
+    const targetId = normalizeStatsId(l.target);
+    if(sourceId) degreeMap.set(sourceId, (degreeMap.get(sourceId) || 0) + 1);
+    if(targetId) degreeMap.set(targetId, (degreeMap.get(targetId) || 0) + 1);
   });
 
   const sorted = [...degreeMap.entries()]
@@ -230,13 +247,18 @@ function renderTopNodes(data) {
   }
 
   const maxDegree = sorted[0][1];
+  const nodeById = new Map(
+    data.nodes
+      .map(node=>[normalizeStatsId(node.id), node])
+      .filter(([id])=>Boolean(id))
+  );
   container.innerHTML = sorted.map(([id, degree]) => {
-    const node = data.nodes.find(n => n.id === id);
+    const node = nodeById.get(id);
     const label = node ? node.label : id;
     const width = (degree / maxDegree) * 100;
     return `
       <div class="top-node-row">
-        <div class="top-node-name">${label}</div>
+        <div class="top-node-name">${escapeHTML(label)}</div>
         <div class="top-node-bar">
           <div class="top-node-fill" style="width:${width}%"></div>
         </div>
@@ -255,26 +277,28 @@ function renderIssuesSummary(data) {
   function countDashboardIssues(data) {
     const nodes = Array.isArray(data.nodes) ? data.nodes : [];
     const links = Array.isArray(data.links) ? data.links : [];
-    const nodeIds = new Set(nodes.map(n => n.id));
+    const nodeIds = new Set(nodes.map(n => normalizeStatsId(n.id)).filter(Boolean));
 
     let problematicLinks = 0;
-    let missingTargets = 0;
+    const missingNodeIds = new Set();
 
     links.forEach(l => {
       let isProblematic = false;
+      const sourceId = normalizeStatsId(l.source);
+      const targetId = normalizeStatsId(l.target);
 
       // 1. Обрыв связи как в валидаторе
-      if (!nodeIds.has(l.source)) {
+      if (!sourceId || !nodeIds.has(sourceId)) {
         isProblematic = true;
-        missingTargets++;
+        if(sourceId) missingNodeIds.add(sourceId);
       }
-      if (!nodeIds.has(l.target)) {
+      if (!targetId || !nodeIds.has(targetId)) {
         isProblematic = true;
-        missingTargets++;
+        if(targetId) missingNodeIds.add(targetId);
       }
 
       // 2. Петля  как в валидаторе
-      if (l.source === l.target && l.source !== undefined) {
+      if (sourceId && sourceId === targetId) {
         isProblematic = true;
       }
 
@@ -291,12 +315,15 @@ function renderIssuesSummary(data) {
     });
 
     const deadNodes = nodes.filter(n => n.status === "dead").length;
-    // Не найдены = узлы со статусом missing + цели связей, которых нет в списке узлов
-    const missingNodes = nodes.filter(n => n.status === "missing").length + missingTargets;
-    
+    const missingNodes = nodes.filter(n => n.status === "missing").length + missingNodeIds.size;
+    const nodeById = new Map(
+      nodes
+        .map(node=>[normalizeStatsId(node.id), node])
+        .filter(([id])=>Boolean(id))
+    );
     const deadLinks = links.filter(l => {
-      const src = nodes.find(n => n.id === l.source);
-      const tgt = nodes.find(n => n.id === l.target);
+      const src = nodeById.get(normalizeStatsId(l.source));
+      const tgt = nodeById.get(normalizeStatsId(l.target));
       return src?.status === "dead" && tgt?.status === "dead";
     }).length;
 
